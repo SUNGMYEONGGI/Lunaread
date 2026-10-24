@@ -1,0 +1,64 @@
+{
+  "name": "lunaread",
+  "version": "0.2.0",
+  "private": true,
+  "description": "AI research-paper reader for web and desktop, running on your own Claude or ChatGPT subscription.",
+  "main": "electron/main.cjs",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "dev": "node server/server.ts & NEXT_PUBLIC_API_BASE=http://127.0.0.1:8787 next dev",
+    "build": "next build && tsc -p tsconfig.server.json",
+    "build:pages": "NEXT_PUBLIC_BASE_PATH=/Lunaread NEXT_PUBLIC_API_BASE=http://127.0.0.1:8787 next build",
+    "start": "node server/server.ts",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.server.json --noEmit",
+    "test": "node --test lib/*.test.ts",
+    "desktop": "npm run build && electron .",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:win": "npm run build && electron-builder --win"
+  },
+  "build": {
+    "appId": "io.lunaread.app",
+    "productName": "Lunaread",
+    "asar": false,
+    "files": [
+      "out/**",
+      "dist-server/**",
+      "electron/**",
+      "package.json"
+    ],
+    "mac": {
+      "target": "dmg",
+      "category": "public.app-category.education"
+    },
+    "win": {
+      "target": "nsis"
+    }
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.310",
+    "@anthropic-ai/sdk": "^1.3.0",
+    "@openai/codex-sdk": "^0.164.0",
+    "openai": "^7.43.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "electron": "^45.0.0",
+    "electron-builder": "^26.18.0",
+    "marked": "^18.1.1",
+    "next": "^16.4.3",
+    "pdfjs-dist": "^6.4.299",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.3"
+  },
+  "allowScripts": {
+    "electron@45.0.0": true
+  }
+}
