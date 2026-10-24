@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { fetchModels, fetchPalettes, getSettings, saveSettings } from '@/lib/api';
 import { applyTheme, splitCode } from '@/lib/theme';
 import type { ModelChoice, Provider, ProviderInfo } from '@/lib/types';
-import Icon from '../icons';
+import Icon, { Brand } from '../icons';
 import { APP_NAME } from './events';
 
 let modelsCache: Promise<ProviderInfo[]> | null = null;
@@ -123,7 +123,7 @@ export function GetStarted({ onClose }: { onClose: () => void }) {
   const sub = (id: Provider) => list?.find(p => p.id === id);
   const SubButton = ({ id, label, icon }: { id: Provider; label: string; icon: string }) => (
     <button className="btn btn-outline h-12 w-full" disabled={!sub(id)?.models.length} onClick={() => pick(id)} title={sub(id)?.error}>
-      <Icon name={icon} size={16} />{label}{list && !sub(id)?.models.length && <small className="font-normal text-muted">· not connected</small>}
+      <Brand name={icon} size={18} />{label}{list && !sub(id)?.models.length && <small className="font-normal text-muted">· not connected</small>}
     </button>
   );
   const ant = key.trim().startsWith('sk-ant-');
@@ -141,8 +141,8 @@ export function GetStarted({ onClose }: { onClose: () => void }) {
         </div>
         <div className="flex flex-col justify-center gap-3 p-8 md:p-12">
           <h2 className="mb-4 text-center text-2xl font-bold tracking-tight">Get started in seconds</h2>
-          <SubButton id="claude-sub" label="Continue with my Claude subscription" icon="sparkles" />
-          <SubButton id="codex-sub" label="Continue with my ChatGPT subscription" icon="bot" />
+          <SubButton id="claude-sub" label="Continue with my Claude subscription" icon="claude" />
+          <SubButton id="codex-sub" label="Continue with my ChatGPT subscription" icon="openai" />
           {list && !list.length && <p className="rounded-xl bg-surface-2 p-3 text-xs text-muted">The Lunaread server is not running on this computer. Run <code className="font-mono">npm start</code> in the project folder, or use the desktop app.</p>}
           <div className="my-2 flex items-center gap-3 text-xs text-muted before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line">or use an API key</div>
           <input className="input h-12" type="password" placeholder="sk-ant-… or sk-…" value={key} onChange={e => setKey(e.target.value)} autoComplete="off" />
