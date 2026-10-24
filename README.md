@@ -90,9 +90,9 @@ To run the desktop app from source, use `npm run desktop`.
 
 ## Try it
 
-- In the library, paste `1706.03762` and press **Open**.
-- In the AI panel, press **Generate keywords & summary**, then click a suggested question.
-- Select a sentence and choose **Explain**, **Translate** or **Ask**, or pick a highlight color.
+- On the home screen, paste `1706.03762` and press `Enter`.
+- In the chat, press **Summarize with keywords**, then click a suggested question.
+- Select a sentence in the PDF and choose **Explain**, **Translate** or **Ask**. The answer appears as a turn in the chat. Or pick a highlight color.
 - Turn on **Image Explanation** and drag over a figure. Holding `⌘`/`Ctrl` while dragging does the same.
 - Press **Auto Highlight** to mark novelty, method and result sentences.
 - Click a citation marker such as `[12]`, or hover an internal link to preview its target.
@@ -103,10 +103,12 @@ To run the desktop app from source, use `npm run desktop`.
 | Surface | Purpose |
 | --- | --- |
 | Landing (`/`, `/features/`, `/pricing/`) | Product site in the style of the Magic UI templates |
-| Library (`/library/`) | Papers and folders, upload or drag and drop, import by arXiv ID or PDF link |
+| Home (`/library/`) | Chatbot-style start screen: one composer that takes a PDF, an arXiv ID or a link |
+| Sidebar | Every paper is a conversation, grouped by Today, Previous 7 days and Older. Also holds New chat, Scholar Deep Search, Library, search and Settings. |
+| Library (`/library/?all`) | All papers as cards, with folder filters, folder moves and delete |
 | Scholar Deep Search (`/library/?scholar`) | Semantic Scholar search; open-access PDFs go straight into the library |
-| Reader (`/read/?id=`) | pdf.js viewer with a toolbar, an outline and a right-side panel with four tabs |
-| AI Colleague tab | Keyword dictionary, summary, suggested questions, explanation cards, chat with references to other papers |
+| Reader (`/read/?id=`) | A chat thread next to the PDF canvas. The PDF toolbar sits on top, the panel rail on the right. Either side can be hidden. |
+| Chat thread (AI Colleague) | The paper as an attachment, the keyword dictionary and summary, Auto Highlights, explanation cards as chat turns, Q&A with references and model choice |
 | Translate Page tab | Translates the current page as a stream; results are cached per page |
 | Markup & Notes tab | Every highlight with its note; export them as Markdown |
 | Discussion tab | Strengths, weaknesses and open questions of the paper |

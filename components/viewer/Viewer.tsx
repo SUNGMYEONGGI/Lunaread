@@ -4,21 +4,21 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import Icon from '../icons';
-import { Rail } from '../app/Rail';
+import { Sidebar } from '../app/Rail';
 import { toast, openSettings } from '../app/events';
 import { getDoc, getFile, putDoc } from '@/lib/db';
 import { aiJSON, streamAI, getSettings } from '@/lib/api';
 import { loadPdf, pageItems, findInItems, pageText, blocks } from '@/lib/pdf';
 import type { AutoHl, Card, CardType, Doc, Mark, ModelChoice, Rect, Summary } from '@/lib/types';
 import PdfPage, { type Link as PdfLink } from './PdfPage';
-import { AiPanel, TranslatePanel, NotesPanel, DiscussionPanel, Md, Spin } from './Panels';
+import { ChatThread, TranslatePanel, NotesPanel, DiscussionPanel, Md, Spin } from './Panels';
 
 type Zoom = number | 'auto' | 'page-fit' | 'page-width';
 const ZOOMS: [Zoom, string][] = [['auto', 'Automatic Zoom'], ['page-fit', 'Page Fit'], ['page-width', 'Page Width'], [0.5, '50%'], [0.75, '75%'], [1, '100%'], [1.25, '125%'], [1.5, '150%'], [2, '200%'], [3, '300%']];
 const SWATCHES = ['yellow', 'green', 'blue', 'pink', 'purple'];
 const CITE_RE = /\[(\d+(?:\s*[,–-]\s*\d+)*)\]|\(([A-Z][\p{L}\-' ]+(?:et al\.)?,? (?:19|20)\d{2}[a-z]?(?:; ?[^()]+)?)\)/gu;
 const uid = () => crypto.randomUUID().slice(0, 8);
-type Tab = 'ai' | 'translate' | 'notes' | 'discussion';
+type Tab = 'translate' | 'notes' | 'discussion';
 type Sel = { text: string; page: number; rects: Rect[]; x: number; y: number };
 
 function download(name: string, text: string) {
@@ -37,7 +37,9 @@ export default function Viewer() {
   const [zoom, setZoom] = useState<Zoom>('auto');
   const [stageSize, setStageSize] = useState({ w: 900, h: 700 });
   const [page, setPage] = useState(1);
-  const [tab, setTab] = useState<Tab | null>('ai');
+  const [tab, setTab] = useState<Tab | null>(null);
+  const [chat, setChat] = useState(true);
+  const [pdfOpen, setPdfOpen] = useState(true);
   const [outline, setOutline] = useState<any[] | null>(null);
   const [showOutline, setShowOutline] = useState(false);
   const [autoOn, setAutoOn] = useState(false);
@@ -96,22 +98,23 @@ export default function Viewer() {
     const ro = new ResizeObserver(([e]) => setStageSize({ w: e.contentRect.width, h: e.contentRect.height }));
     ro.observe(stage.current);
     return () => ro.disconnect();
-  }, [pdf]);
+  }, [pdf, pdfOpen]);
   const base = sizes[0] || { w: 612, h: 792 };
   const fitW = (stageSize.w - 48) / base.w;
   const scale = zoom === 'page-width' ? fitW : zoom === 'page-fit' ? Math.min(fitW, (stageSize.h - 36) / base.h) : zoom === 'auto' ? Math.min(fitW, 1.5) : zoom;
   const step = (d: number) => setZoom(z => Math.round(Math.min(4, Math.max(0.3, (typeof z === 'number' ? z : scale) + d)) * 100) / 100);
 
-  const jump = useCallback((n: number, rects?: Rect[]) => {
+  const jump = useCallback((n: number, rects?: Rect[], tries = 0) => {
     const st = stage.current;
     const el = st?.querySelector<HTMLElement>(`.page[data-page="${n}"]`);
-    if (!st || !el) return;
+    // The PDF canvas may be closed: open it, then retry once it has laid out.
+    if (!st || !el) { setPdfOpen(true); if (tries < 5) setTimeout(() => jump(n, rects, tries + 1), 120); return; }
     const y = rects?.[0] ? rects[0].y * el.offsetHeight - st.clientHeight / 3 : -12;
     st.scrollTo({ top: el.offsetTop + y, behavior: rects ? 'smooth' : 'auto' });
     if (rects) setFlash({ page: n, rects, key: Date.now() });
   }, []);
   // Keep the reading position when the scale changes.
-  useLayoutEffect(() => { if (pdf) jump(pageRef.current); }, [scale, pdf]);
+  useLayoutEffect(() => { if (pdf && pdfOpen) jump(pageRef.current); }, [scale, pdf, pdfOpen]);
 
   const onScroll = () => {
     const st = stage.current!;
@@ -128,7 +131,7 @@ export default function Viewer() {
     const card: Card = { id: cid, type, src, image, page: pg, at: Date.now(), pending: true };
     const upd = (c: Partial<Card>) => patch(d => ({ cards: d.cards.map(x => x.id === cid ? { ...x, ...c } : x) }));
     patch(d => ({ cards: [...(d.cards || []), card] }));
-    setTab('ai');
+    setChat(true);
     try {
       const body = { task, text, extra, ...(image && { image: image.split(',')[1] }) };
       await streamAI(task === 'translate' || task === 'infographic' ? null : docRef.current, body, t => upd({ body: t }));
@@ -346,7 +349,7 @@ export default function Viewer() {
   };
 
   if (error || !doc || !pdf) return (
-    <div className="flex h-screen"><Rail /><div className="grid flex-1 place-items-center text-muted">{error ? <span>{error} <Link className="text-accent" href="/library/">Back to library</Link></span> : <Spin />}</div></div>
+    <div className="flex h-screen"><Sidebar /><div className="grid flex-1 place-items-center bg-surface text-muted">{error ? <span>{error} <Link className="text-accent" href="/library/">Back to library</Link></span> : <Spin />}</div></div>
   );
 
   const marksFor = (n: number) => [
@@ -354,17 +357,34 @@ export default function Viewer() {
     ...(autoOn ? (doc.auto || []).filter(h => h.page === n).map((h, i) => ({ id: `a${i}`, rects: h.rects!, color: h.category })) : []),
   ];
   const near = (n: number) => Math.abs(n - page) <= 2;
-  const tabs: [Tab, string, string][] = [['ai', 'bot', 'AI Colleague'], ['translate', 'languages', 'Translate Page'], ['notes', 'pen', 'Markup & Notes'], ['discussion', 'chat', 'Discussion']];
+  const tabs: [Tab, string, string][] = [['translate', 'languages', 'Translate Page'], ['notes', 'pen', 'Markup & Notes'], ['discussion', 'chat', 'Discussion']];
+  // Chat and PDF can each be hidden, but never both.
+  const toggleChat = () => { if (chat && !pdfOpen) setPdfOpen(true); setChat(!chat); };
+  const togglePdf = () => { if (pdfOpen && !chat) setChat(true); setPdfOpen(!pdfOpen); };
   const tool = (on: boolean) => `inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-[13px] font-medium transition ${on ? 'bg-accent-soft text-accent' : 'hover:bg-surface-2'}`;
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Rail>
-        <button className={`icon-btn size-10 ${showOutline ? 'on' : ''}`} title="Outline" onClick={() => setShowOutline(v => !v)}><Icon name="list" /></button>
-      </Rail>
+      <Sidebar />
+      <div className="flex min-w-0 flex-1 bg-surface">
+        {chat && (
+          <section className={`flex min-w-0 flex-col ${pdfOpen ? 'w-[clamp(360px,36vw,560px)] shrink-0 border-r border-line' : 'flex-1'}`}>
+            <header className="flex h-14 shrink-0 items-center gap-2 px-4">
+              <h1 className="min-w-0 flex-1 truncate text-[15px] font-semibold" title={doc.title}>{doc.title}</h1>
+              {!pdfOpen && <button className="btn btn-outline btn-sm" onClick={togglePdf}><Icon name="file" size={14} />Show PDF</button>}
+              <button className="icon-btn" title="Share" onClick={() => setMenu(menu === 'share' ? null : 'share')}><Icon name="share" /></button>
+            </header>
+            <ChatThread doc={doc} summary={doc.summary} summarizing={busy.summary} onSummarize={summarize} onAsk={ask} chatBusy={busy.chat}
+              onRemoveCard={cid => patch(d => ({ cards: d.cards.filter(c => c.id !== cid) }))} onInfographic={infographic} onJump={jump} draft={draft} setDraft={setDraft}
+              pdfOpen={pdfOpen} onShowPdf={() => pdfOpen ? jump(1) : setPdfOpen(true)}
+              actions={[['highlighter', doc.auto ? 'Toggle Auto Highlight' : 'Auto Highlight', autoHighlight], ['chat', 'Discussion', () => setTab('discussion')], ['languages', 'Translate this page', () => setTab('translate')]]} />
+          </section>
+        )}
+        {pdfOpen && (
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex h-14 shrink-0 items-center justify-center gap-1 overflow-x-auto border-b border-line bg-bg/80 px-3 backdrop-blur">
-          <button className={`icon-btn ${showOutline ? 'on' : ''}`} title="Toggle sidebar" onClick={() => setShowOutline(v => !v)}><Icon name="sidebar" /></button>
+        <div className="flex h-14 shrink-0 items-center gap-1 overflow-x-auto border-b border-line bg-surface px-3 *:shrink-0 [&>:first-child]:ml-auto [&>:last-child]:mr-auto">
+          <button className="icon-btn" title="Close PDF" onClick={togglePdf}><Icon name="x" /></button>
+          <button className={`icon-btn ${showOutline ? 'on' : ''}`} title="Outline" onClick={() => setShowOutline(v => !v)}><Icon name="sidebar" /></button>
           <button className="icon-btn max-md:hidden" title="Document info" onClick={() => setMenu(menu === 'info' ? null : 'info')}><Icon name="info" /></button>
           <button className={`icon-btn ${search ? 'on' : ''}`} title="Search (⌘F)" onClick={() => setSearch(s => s ? null : { q: '' })}><Icon name="search" /></button>
           {search && (
@@ -380,14 +400,14 @@ export default function Viewer() {
           </select>
           <button className="icon-btn max-md:hidden" title="Zoom out" onClick={() => step(-0.1)}><Icon name="minus" /></button>
           <button className="icon-btn max-md:hidden" title="Zoom in" onClick={() => step(0.1)}><Icon name="plus" /></button>
-          <div className="flex h-8 items-center gap-1 rounded-lg border border-line px-2 text-sm font-medium">
+          <div className="flex h-8 items-center gap-1 whitespace-nowrap rounded-lg border border-line px-2 text-sm font-medium">
             <input className="w-8 bg-transparent text-right font-semibold outline-none" aria-label="Page" value={page} onChange={e => { const n = +e.target.value; if (n >= 1 && n <= pdf.numPages) { pageRef.current = n; setPage(n); jump(n); } }} />
             <span className="text-muted">/ {pdf.numPages}</span>
           </div>
           <span className="mx-1.5 h-5 w-px bg-line" />
-          <button className={tool(autoOn)} onClick={autoHighlight} disabled={busy.auto}>{busy.auto ? <Spin /> : <Icon name="highlighter" size={16} />}<span className="max-lg:hidden">Auto Highlight</span></button>
-          <button className={tool(areaMode)} onClick={() => setAreaMode(v => !v)} title="Drag over a figure (or ⌘/Ctrl + drag)"><Icon name="image" size={16} /><span className="max-lg:hidden">Image Explanation</span></button>
-          <button className={tool(layoutOn)} onClick={() => setLayoutOn(v => !v)}>{busy[`layout${page}`] ? <Spin /> : <Icon name="languages" size={16} />}<span className="max-lg:hidden">Layout Translate <sup className="text-[9px] text-muted">beta</sup></span></button>
+          <button className={tool(autoOn)} onClick={autoHighlight} disabled={busy.auto} title="Auto Highlight">{busy.auto ? <Spin /> : <Icon name="highlighter" size={16} />}<span className="hidden 2xl:inline">Auto Highlight</span></button>
+          <button className={tool(areaMode)} onClick={() => setAreaMode(v => !v)} title="Drag over a figure (or ⌘/Ctrl + drag)"><Icon name="image" size={16} /><span className="hidden 2xl:inline">Image Explanation</span></button>
+          <button className={tool(layoutOn)} onClick={() => setLayoutOn(v => !v)} title="Layout Translate (beta)">{busy[`layout${page}`] ? <Spin /> : <Icon name="languages" size={16} />}<span className="hidden 2xl:inline">Layout Translate <sup className="text-[9px] text-muted">beta</sup></span></button>
           <span className="mx-1.5 h-5 w-px bg-line" />
           <button className="icon-btn" title="Settings" onClick={openSettings}><Icon name="settings" /></button>
           <button className="icon-btn" title="Share" onClick={() => setMenu(menu === 'share' ? null : 'share')}><Icon name="share" /></button>
@@ -418,15 +438,14 @@ export default function Viewer() {
               </button>
             )}
           </div>
+        </div>
+      </div>
+        )}
           {tab && (
-            <section className="flex w-[400px] shrink-0 flex-col border-l border-line bg-surface max-lg:fixed max-lg:bottom-0 max-lg:right-[52px] max-lg:top-14 max-lg:z-30 max-lg:w-[min(400px,calc(100vw-52px))] max-lg:shadow-soft">
-              {tab !== 'ai' && (
-                <div className="flex h-12 shrink-0 items-center border-b border-line px-4 font-bold">{tabs.find(t => t[0] === tab)![2]}
-                  <button className="icon-btn ml-auto" onClick={() => setTab(null)} title="Close panel"><Icon name="x" size={16} /></button>
-                </div>
-              )}
-              {tab === 'ai' && <AiPanel doc={doc} summary={doc.summary} summarizing={busy.summary} onSummarize={summarize} onAsk={ask} chatBusy={busy.chat}
-                onRemoveCard={cid => patch(d => ({ cards: d.cards.filter(c => c.id !== cid) }))} onInfographic={infographic} onJump={jump} draft={draft} setDraft={setDraft} />}
+            <section className="flex w-[380px] shrink-0 flex-col border-l border-line bg-surface max-lg:fixed max-lg:bottom-0 max-lg:right-[52px] max-lg:top-0 max-lg:z-30 max-lg:w-[min(380px,calc(100vw-52px))] max-lg:shadow-soft">
+              <div className="flex h-14 shrink-0 items-center border-b border-line px-4 font-semibold">{tabs.find(t => t[0] === tab)![2]}
+                <button className="icon-btn ml-auto" onClick={() => setTab(null)} title="Close panel"><Icon name="x" size={16} /></button>
+              </div>
               {tab === 'translate' && <TranslatePanel page={page} text={doc.translations?.[page]} busy={busy.tr} error={errs.tr} onTranslate={translatePage} />}
               {tab === 'notes' && <NotesPanel marks={doc.marks || []} onJump={jump} onExport={exportNotes}
                 onUpdate={(mid, c) => patch(d => ({ marks: d.marks.map(m => m.id === mid ? { ...m, ...c } : m) }))}
@@ -435,21 +454,21 @@ export default function Viewer() {
             </section>
           )}
           <nav className="flex w-[52px] shrink-0 flex-col items-center gap-1.5 border-l border-line bg-surface py-2.5">
-            <button className="icon-btn size-10" title="Toggle panel" onClick={() => setTab(t => t ? null : 'ai')}><Icon name="panel" /></button>
+            <button className="icon-btn size-10" title="Close panel" onClick={() => setTab(null)}><Icon name="panel" /></button>
+            <button title="AI Colleague" onClick={toggleChat} className={`icon-btn size-10 border ${chat ? 'border-line bg-bg text-fg shadow-sm' : 'border-transparent'}`}><Icon name="bot" /></button>
             {tabs.map(([k, icon, label]) => (
-              <button key={k} title={label} onClick={() => setTab(k)} className={`icon-btn size-10 border ${tab === k ? 'border-line bg-bg text-fg shadow-sm' : 'border-transparent'}`}><Icon name={icon} /></button>
+              <button key={k} title={label} onClick={() => setTab(tab === k ? null : k)} className={`icon-btn size-10 border ${tab === k ? 'border-line bg-bg text-fg shadow-sm' : 'border-transparent'}`}><Icon name={icon} /></button>
             ))}
             <button className={`icon-btn size-10 ${areaMode ? 'on' : ''}`} title="Image Explanation" onClick={() => setAreaMode(v => !v)}><Icon name="scan" /></button>
             <button className="icon-btn size-10" title="Scholar Deep Search" onClick={() => router.push('/library/?scholar')}><Icon name="compass" /></button>
           </nav>
-        </div>
       </div>
 
       {sel && (
         <div className="popover flex items-center gap-0.5 p-1" style={{ left: Math.min(Math.max(8, sel.x - 230), innerWidth - 470), top: sel.y }} onMouseDown={e => e.preventDefault()}>
           <button className={tool(false)} onClick={() => { explain(sel.text, sel.page); setSel(null); }}><Icon name="sparkles" size={15} />Explain</button>
           <button className={tool(false)} onClick={() => { translate(sel.text, sel.page); setSel(null); }}><Icon name="languages" size={15} />Translate</button>
-          <button className={tool(false)} onClick={() => { setTab('ai'); setDraft(`"${sel.text.slice(0, 600)}"\n\n`); setSel(null); }}><Icon name="chat" size={15} />Ask</button>
+          <button className={tool(false)} onClick={() => { setChat(true); setDraft(`"${sel.text.slice(0, 600)}"\n\n`); setSel(null); }}><Icon name="chat" size={15} />Ask</button>
           <span className="mx-1 h-5 w-px bg-line" />
           {SWATCHES.map(c => <button key={c} className="icon-btn size-7" title={`Highlight ${c}`} onClick={() => addMark(c)}><span className="size-[18px] rounded-full ring-2 ring-surface" style={{ background: `var(--hl-${c})`, boxShadow: '0 0 0 3px var(--border)' }} /></button>)}
           <button className="icon-btn" title="Highlight + note" onClick={() => { addMark('yellow'); setTab('notes'); }}><Icon name="note" size={15} /></button>

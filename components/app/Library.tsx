@@ -2,8 +2,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Icon from '../icons';
-import { Rail, ServerBanner } from './Rail';
-import { toast } from './events';
+import { Sidebar, ServerBanner } from './Rail';
+import { LogoMark } from '../site/Site';
+import { docsChanged, toast } from './events';
 import { listDocs, addPdf, deleteDoc, putDoc } from '@/lib/db';
 import { fetchPdf, normalizePaperUrl, scholarSearch, type ScholarPaper } from '@/lib/api';
 import { loadPdf, pdfTitle } from '@/lib/pdf';
@@ -53,7 +54,7 @@ function Scholar({ docs, onOpen }: { docs: Doc[]; onOpen: (url: string) => void 
   return (
     <>
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h2 className="mr-auto text-2xl font-bold tracking-tight">Scholar Deep Search</h2>
+        <h2 className="mr-auto text-2xl font-semibold tracking-tight">Scholar Deep Search</h2>
         <form className="relative" onSubmit={e => { e.preventDefault(); q.trim() && run(q); }}>
           <Icon name="search" size={16} className="absolute left-3 top-3 text-muted" />
           <input className="input w-72 pl-9" placeholder="Search papers on Semantic Scholar" value={q} onChange={e => setQ(e.target.value)} />
@@ -83,27 +84,76 @@ function Scholar({ docs, onOpen }: { docs: Doc[]; onOpen: (url: string) => void 
   );
 }
 
+// Chatbot-style home: one big composer that takes a PDF, an arXiv ID or a link.
+function Home({ busy, onUrl, onPick, onDrop, recent, onOpen }: { busy: boolean; onUrl: (u: string) => void; onPick: () => void; onDrop: (f: FileList) => void; recent: Doc[]; onOpen: (id: string) => void }) {
+  const router = useRouter();
+  const [url, setUrl] = useState('');
+  const [over, setOver] = useState(false);
+  const hour = new Date().getHours();
+  const greet = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  const submit = () => url.trim() && !busy && onUrl(url.trim());
+  const SUGGEST: [string, string, () => void][] = [
+    ['upload', 'Upload a PDF', onPick],
+    ['file', 'Attention Is All You Need', () => onUrl('1706.03762')],
+    ['file', 'BERT', () => onUrl('1810.04805')],
+    ['compass', 'Find papers', () => router.push('/library/?scholar')],
+  ];
+  return (
+    <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col justify-center pb-24 pt-10"
+      onDragOver={e => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)} onDrop={e => { e.preventDefault(); setOver(false); onDrop(e.dataTransfer.files); }}>
+      <h1 className="mb-8 flex items-center justify-center gap-3 text-center text-[32px] font-semibold tracking-tight"><LogoMark size={34} />{greet}. What are we reading?</h1>
+      <div className={`rounded-[28px] border bg-surface p-3 shadow-[0_2px_12px_rgba(0,0,0,.06)] transition ${over ? 'border-accent ring-4 ring-accent-soft' : 'border-line focus-within:border-fg/30'}`}>
+        <textarea autoFocus rows={2} className="block max-h-40 w-full resize-none bg-transparent px-2 pt-1 text-[16px] outline-none placeholder:text-muted"
+          placeholder={over ? 'Drop the PDF to start' : 'Paste an arXiv ID or PDF link, or drop a PDF here'} value={url} onChange={e => setUrl(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit(); } }} />
+        <div className="mt-2 flex items-center gap-2">
+          <button className="icon-btn size-9 rounded-full border border-line" title="Upload PDF" onClick={onPick}><Icon name="plus" size={18} /></button>
+          <span className="text-xs text-muted">PDF · arXiv · DOI links to open-access PDFs</span>
+          <button className="ml-auto grid size-9 place-items-center rounded-full bg-fg text-bg transition disabled:opacity-30" disabled={!url.trim() || busy} onClick={submit} aria-label="Open paper">
+            {busy ? <span className="spin border-bg/30 border-t-bg" /> : <Icon name="arrowRight" size={17} className="-rotate-90" />}
+          </button>
+        </div>
+      </div>
+      <div className="mt-4 flex flex-wrap justify-center gap-2">
+        {SUGGEST.map(([icon, label, fn]) => <button key={label} disabled={busy} onClick={fn} className="chip h-9 px-4 text-[13px]"><Icon name={icon} size={14} />{label}</button>)}
+      </div>
+      {!!recent.length && (
+        <div className="mt-14">
+          <h3 className="mb-3 px-1 text-sm font-medium text-muted">Recent papers</h3>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {recent.slice(0, 3).map(d => (
+              <button key={d.id} onClick={() => onOpen(d.id)} className="card group flex items-center gap-3 p-2.5 text-left transition hover:bg-surface-2">
+                <span className="h-14 w-11 shrink-0 overflow-hidden rounded-md border border-line bg-surface-2">{d.thumb && <img src={d.thumb} alt="" className="size-full object-cover object-top" />}</span>
+                <span className="min-w-0"><span className="line-clamp-2 text-[13px] font-medium leading-snug">{d.title}</span><span className="text-xs text-muted">{d.pages ? `${d.pages} pages` : 'PDF'}</span></span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Library() {
   const router = useRouter();
   const query = useSearchParams();
   const scholar = query.has('scholar');
+  const all = query.has('all');
   const [docs, setDocs] = useState<Doc[]>([]);
   const [folder, setFolder] = useState<string | null>(null);
   const [filter, setFilter] = useState('');
-  const [url, setUrl] = useState('');
   const [busy, setBusy] = useState(false);
-  const [over, setOver] = useState(false);
   const [newFolder, setNewFolder] = useState<{ doc: Doc; name: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const refresh = () => listDocs().then(setDocs);
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => { refresh(); addEventListener('docs-changed', refresh); return () => removeEventListener('docs-changed', refresh); }, []);
   useEffect(() => { if (query.has('upload')) setTimeout(() => fileRef.current?.click(), 50); }, [query]);
 
   const open = (id: string) => router.push(`/read/?id=${id}`);
   const work = async (fn: () => Promise<Doc>) => {
     setBusy(true);
-    try { open((await fn()).id); } catch (e) { toast((e as Error).message); } finally { setBusy(false); }
+    try { const d = await fn(); docsChanged(); open(d.id); } catch (e) { toast((e as Error).message); } finally { setBusy(false); }
   };
   const addFiles = (files: FileList | null) => {
     const pdfs = [...(files || [])].filter(f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
@@ -123,45 +173,27 @@ export default function Library() {
     await putDoc({ ...doc, folder: value });
     refresh();
   };
-  const side = (on: boolean) => `menu-item ${on ? 'on' : ''}`;
 
   return (
     <div className="flex h-screen overflow-hidden">
-      <Rail />
-      <aside className="flex w-60 shrink-0 flex-col gap-0.5 overflow-auto border-r border-line px-3 py-6 max-lg:hidden">
-        <h4 className="mx-2.5 mb-1.5 font-mono text-[11px] uppercase tracking-[.14em] text-muted">Library</h4>
-        <button className={side(!scholar && folder === null)} onClick={() => { setFolder(null); router.push('/library/'); }}><Icon name="library" size={16} />All papers<span className="ml-auto text-xs text-muted">{docs.length}</span></button>
-        <button className={side(scholar)} onClick={() => router.push('/library/?scholar')}><Icon name="compass" size={16} />Scholar Deep Search</button>
-        <h4 className="mx-2.5 mb-1.5 mt-6 font-mono text-[11px] uppercase tracking-[.14em] text-muted">Folders</h4>
-        {folders.map(f => (
-          <button key={f} className={side(!scholar && folder === f)} onClick={() => { setFolder(f); router.push('/library/'); }}>
-            <Icon name="folder" size={16} />{f}<span className="ml-auto text-xs text-muted">{docs.filter(d => d.folder === f).length}</span>
-          </button>
-        ))}
-        <button className={side(!scholar && folder === '')} onClick={() => { setFolder(''); router.push('/library/'); }}><Icon name="file" size={16} />Unsorted</button>
-      </aside>
-      <main className="flex-1 overflow-auto px-5 py-7 md:px-10">
-        <ServerBanner />
-        {scholar ? <Scholar docs={docs} onOpen={u => work(() => importUrl(u))} /> : (
-          <>
-            <div className="mb-6 flex flex-wrap items-center gap-3">
-              <h2 className="mr-auto text-2xl font-bold tracking-tight">{folder ? folder : folder === '' ? 'Unsorted' : 'All papers'}</h2>
+      <Sidebar />
+      <main className="flex-1 overflow-auto bg-surface px-5 py-7 md:px-10">
+        <div className="mx-auto max-w-5xl"><ServerBanner /></div>
+        <input ref={fileRef} type="file" accept="application/pdf,.pdf" multiple hidden onChange={e => { addFiles(e.target.files); e.target.value = ''; }} />
+        {scholar ? <div className="mx-auto max-w-4xl"><Scholar docs={docs} onOpen={u => work(() => importUrl(u))} /></div>
+          : !all ? <Home busy={busy} onUrl={u => work(() => importUrl(u))} onPick={() => fileRef.current?.click()} onDrop={addFiles} recent={docs} onOpen={open} />
+          : (
+          <div className="mx-auto max-w-5xl">
+            <div className="mb-5 flex flex-wrap items-center gap-3">
+              <h2 className="mr-auto text-2xl font-semibold tracking-tight">Library</h2>
               <div className="relative"><Icon name="search" size={16} className="absolute left-3 top-3 text-muted" /><input className="input w-64 pl-9" placeholder="Search library" value={filter} onChange={e => setFilter(e.target.value)} /></div>
-              <button className="btn btn-primary h-10" onClick={() => fileRef.current?.click()}><Icon name="upload" size={15} />Upload</button>
+              <button className="btn btn-primary h-10" disabled={busy} onClick={() => fileRef.current?.click()}>{busy ? <span className="spin" /> : <Icon name="upload" size={15} />}Upload</button>
             </div>
-            <div
-              className={`dots mb-8 rounded-3xl border-2 border-dashed p-8 text-center text-sm transition ${over ? 'border-accent bg-ai text-accent' : 'border-line bg-surface text-muted'}`}
-              onDragOver={e => { e.preventDefault(); setOver(true); }}
-              onDragLeave={() => setOver(false)}
-              onDrop={e => { e.preventDefault(); setOver(false); addFiles(e.dataTransfer.files); }}
-            >
-              {busy ? <span className="inline-flex items-center gap-2"><span className="spin" />Opening paper…</span> : 'Drop PDF files here, or paste an arXiv ID / PDF link'}
-              <form className="mx-auto mt-4 flex max-w-xl gap-2" onSubmit={e => { e.preventDefault(); url.trim() && work(() => importUrl(url)); }}>
-                <input className="input h-11 bg-bg" placeholder="e.g. 1706.03762 or https://arxiv.org/abs/1706.03762" value={url} onChange={e => setUrl(e.target.value)} />
-                <button className="btn btn-accent h-11" disabled={busy}>Open</button>
-              </form>
+            <div className="mb-6 flex flex-wrap gap-2">
+              {([[null, 'All', docs.length], ...folders.map(f => [f, f, docs.filter(d => d.folder === f).length]), ['', 'Unsorted', docs.filter(d => !d.folder).length]] as [string | null, string, number][]).map(([v, label, n]) => (
+                <button key={label} className={`chip h-8 px-3.5 ${folder === v ? 'on' : ''}`} onClick={() => setFolder(v)}>{v ? <Icon name="folder" size={13} /> : null}{label}<span className="text-muted">{n}</span></button>
+              ))}
             </div>
-            <input ref={fileRef} type="file" accept="application/pdf,.pdf" multiple hidden onChange={e => { addFiles(e.target.files); e.target.value = ''; }} />
             {!shown.length && <p className="py-16 text-center text-muted">No papers yet.</p>}
             <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-4">
               {shown.map(d => (
@@ -177,13 +209,13 @@ export default function Library() {
                         {folders.map(f => <option key={f}>{f}</option>)}
                         <option value="__new">+ New folder…</option>
                       </select>
-                      <button className="icon-btn size-6" title="Delete" onClick={async () => { if (confirm(`Delete “${d.title}”?`)) { await deleteDoc(d.id); refresh(); } }}><Icon name="trash" size={14} /></button>
+                      <button className="icon-btn size-6" title="Delete" onClick={async () => { if (confirm(`Delete “${d.title}”?`)) { await deleteDoc(d.id); docsChanged(); } }}><Icon name="trash" size={14} /></button>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-          </>
+          </div>
         )}
       </main>
       {newFolder && (

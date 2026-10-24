@@ -5,3 +5,4 @@ export const openSettings = () => window.dispatchEvent(new Event('open-settings'
 export const openThemePicker = () => window.dispatchEvent(new Event('theme-picker'));
 export const openGetStarted = () => window.dispatchEvent(new Event('get-started'));
 export const isDesktop = () => typeof navigator !== 'undefined' && navigator.userAgent.includes('Electron');
+export const docsChanged = () => window.dispatchEvent(new Event('docs-changed'));
