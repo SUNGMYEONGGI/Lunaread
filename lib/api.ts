@@ -7,6 +7,11 @@ import type { Doc, ProviderInfo, Settings } from './types.ts';
 export const LANGS = ['Korean', 'English', 'Japanese', 'Chinese (Simplified)', 'Spanish', 'French', 'German', 'Vietnamese'];
 export const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || '';
 export const REPO_URL = 'https://github.com/SUNGMYEONGGI/Lunaread';
+export const DOWNLOADS = {
+  mac: `${REPO_URL}/releases/latest/download/Lunaread-arm64.dmg`,
+  win: `${REPO_URL}/releases/latest/download/Lunaread-Setup-x64.exe`,
+  all: `${REPO_URL}/releases/latest`,
+};
 
 // provider: claude-sub | codex-sub (local CLI logins = the user's subscriptions) | anthropic-api | openai-api
 const DEFAULTS: Settings = { apiKey: '', openaiKey: '', provider: 'claude-sub', model: 'default', lang: 'Korean', theme: 'light', palette: null, server: '' };

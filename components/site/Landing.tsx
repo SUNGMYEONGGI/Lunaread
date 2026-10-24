@@ -1,14 +1,14 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import Icon from '../icons';
+import Icon, { Brand } from '../icons';
 import { BlurFade, BorderBeam, Marquee, ShinyText } from '../magic';
 import { Heading, Page } from './Site';
 import { FeatureScene, PALETTES, PaletteChip, ProductMock } from './Mocks';
 import { openGetStarted } from '../app/events';
-import { REPO_URL } from '@/lib/api';
+import { DOWNLOADS, REPO_URL } from '@/lib/api';
 
-const WORKS_WITH: [string, string][] = [['sparkles', 'Claude'], ['bot', 'ChatGPT'], ['file', 'arXiv'], ['compass', 'Semantic Scholar'], ['palette', 'Color Hunt'], ['layers', 'PDF.js']];
+const WORKS_WITH: [string, string][] = [['claude', 'Claude'], ['openai', 'ChatGPT'], ['file', 'arXiv'], ['compass', 'Semantic Scholar'], ['palette', 'Color Hunt'], ['layers', 'PDF.js']];
 
 const FEATURES = [
   { id: 'explain', icon: 'sparkles', title: 'Explanation', desc: 'Select a sentence or formula and get a plain-language walkthrough in your language.' },
@@ -50,9 +50,9 @@ function Hero() {
       <BlurFade delay={0.24}>
         <div className="relative mt-9 flex flex-wrap justify-center gap-3">
           <Link href="/library/" className="btn btn-primary h-12 px-7 text-[15px]">Open the reader<Icon name="arrowRight" size={16} /></Link>
-          <a href={REPO_URL} target="_blank" rel="noreferrer" className="btn btn-outline h-12 px-7 text-[15px]"><Icon name="github" size={16} />View source</a>
+          <a href={DOWNLOADS.mac} className="btn btn-outline h-12 px-7 text-[15px]"><Brand name="apple" size={16} />Download for Mac</a>
         </div>
-        <p className="mt-5 text-[13px] text-muted">Free and open source · Web, macOS and Windows · Your papers stay on your device</p>
+        <p className="mt-5 text-[13px] text-muted">Free and open source · <a href={DOWNLOADS.win} className="underline-offset-2 hover:text-fg hover:underline">Windows</a> · <a href={REPO_URL} target="_blank" rel="noreferrer" className="underline-offset-2 hover:text-fg hover:underline">Source on GitHub</a> · Your papers stay on your device</p>
       </BlurFade>
       <BlurFade delay={0.32} className="relative mx-auto mt-16 max-w-5xl">
         <div className="relative rounded-[18px] border border-line bg-surface-2/60 p-2 shadow-soft">
@@ -71,7 +71,7 @@ function WorksWith() {
       <div className="grid grid-cols-2 border-t border-line sm:grid-cols-3 md:grid-cols-6">
         {WORKS_WITH.map(([icon, name], i) => (
           <div key={name} className={`flex h-20 items-center justify-center gap-2 text-[15px] font-semibold text-muted transition hover:bg-surface hover:text-fg ${i ? 'border-l border-line' : ''}`}>
-            <Icon name={icon} size={18} />{name}
+            {i < 2 ? <Brand name={icon} size={18} /> : <Icon name={icon} size={18} />}{name}
           </div>
         ))}
       </div>
@@ -195,6 +195,30 @@ function Faq() {
   );
 }
 
+function Download() {
+  const apps: [string, string, string, string][] = [
+    ['apple', 'macOS', 'Apple Silicon · .dmg', DOWNLOADS.mac],
+    ['windows', 'Windows', 'x64 · installer', DOWNLOADS.win],
+  ];
+  return (
+    <section id="download" className="scroll-mt-16 border-t border-line px-6 py-20 md:px-10">
+      <Heading kicker="Desktop app" title="Take Lunaread to your desktop" sub="The desktop app runs the AI server inside the app, so your Claude or ChatGPT login works with nothing else to set up." />
+      <div className="mx-auto mt-12 grid max-w-3xl gap-4 sm:grid-cols-2">
+        {apps.map(([icon, name, meta, href]) => (
+          <a key={name} href={href} className="card group relative flex items-center gap-4 overflow-hidden p-6 transition hover:-translate-y-0.5 hover:shadow-soft">
+            <span className="grid size-12 place-items-center rounded-2xl bg-surface-2 text-fg"><Brand name={icon} size={24} /></span>
+            <span className="flex-1"><b className="block text-lg">Download for {name}</b><span className="text-sm text-muted">{meta}</span></span>
+            <Icon name="download" size={18} className="text-muted transition group-hover:text-accent" />
+          </a>
+        ))}
+      </div>
+      <p className="mt-6 text-center text-[13px] text-muted">
+        Unsigned builds. On macOS, right-click the app and choose <b>Open</b> on first launch. <a href={DOWNLOADS.all} target="_blank" rel="noreferrer" className="text-accent hover:underline">All releases</a>
+      </p>
+    </section>
+  );
+}
+
 function Cta() {
   return (
     <section className="border-t border-line p-6 md:p-10">
@@ -220,6 +244,7 @@ export default function Landing() {
       <FeatureSwitcher />
       <Bento />
       <Steps />
+      <Download />
       <Faq />
       <Cta />
       <div className="px-6 pb-4 text-center md:px-10"><ShinyText className="text-xs">Made for people who read papers for a living.</ShinyText></div>

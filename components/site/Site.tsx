@@ -26,7 +26,7 @@ export function Page({ children }: { children: ReactNode }) {
   );
 }
 
-const LINKS: [string, string][] = [['/features/', 'Features'], ['/pricing/', 'Pricing'], ['/#faq', 'FAQ'], ['/library/?scholar', 'Explore']];
+const LINKS: [string, string][] = [['/features/', 'Features'], ['/pricing/', 'Pricing'], ['/#download', 'Download'], ['/#faq', 'FAQ'], ['/library/?scholar', 'Explore']];
 
 function Nav() {
   const [scrolled, setScrolled] = useState(false);

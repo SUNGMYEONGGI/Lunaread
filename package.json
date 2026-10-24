@@ -30,12 +30,37 @@
       "package.json"
     ],
     "mac": {
-      "target": "dmg",
-      "category": "public.app-category.education"
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
+      ],
+      "category": "public.app-category.education",
+      "identity": "-",
+      "artifactName": "Lunaread-arm64.${ext}",
+      "hardenedRuntime": false
     },
     "win": {
-      "target": "nsis"
-    }
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "Lunaread-Setup-x64.${ext}"
+    },
+    "directories": {
+      "output": "dist"
+    },
+    "nsis": {
+      "oneClick": true
+    },
+    "publish": null
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.3.310",

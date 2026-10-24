@@ -8,8 +8,10 @@
 
 AI runs through the Claude Agent SDK on your Claude login, or through the Codex SDK on your ChatGPT login. You need no API keys and no cloud account. Your papers, highlights and notes stay in your browser.
 
-[**Website**](https://sungmyeonggi.github.io/Lunaread/) · [**Open the reader**](https://sungmyeonggi.github.io/Lunaread/library/) · [**Quick start**](#quick-start) · [**Features**](#features) · [**Architecture**](#architecture) · [**Security model**](#security-model) · [**Build and deploy**](#build-and-deploy)
+[**Website**](https://sungmyeonggi.github.io/Lunaread/) · [**Download for Mac**](https://github.com/SUNGMYEONGGI/Lunaread/releases/latest/download/Lunaread-arm64.dmg) · [**Download for Windows**](https://github.com/SUNGMYEONGGI/Lunaread/releases/latest/download/Lunaread-Setup-x64.exe) · [**Open the reader**](https://sungmyeonggi.github.io/Lunaread/library/) · [**Quick start**](#quick-start) · [**Features**](#features) · [**Architecture**](#architecture) · [**Security model**](#security-model) · [**Build and release**](#build-and-release)
 
+[![Release](https://github.com/SUNGMYEONGGI/Lunaread/actions/workflows/release.yml/badge.svg)](https://github.com/SUNGMYEONGGI/Lunaread/actions/workflows/release.yml)
+[![Latest release](https://img.shields.io/github/v/release/SUNGMYEONGGI/Lunaread)](https://github.com/SUNGMYEONGGI/Lunaread/releases/latest)
 [![Deploy to GitHub Pages](https://github.com/SUNGMYEONGGI/Lunaread/actions/workflows/deploy.yml/badge.svg)](https://github.com/SUNGMYEONGGI/Lunaread/actions/workflows/deploy.yml)
 ![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6.svg)
@@ -34,7 +36,7 @@ A PDF reader with an AI panel, a library and a Semantic Scholar search, delivere
 | --- | --- | --- |
 | **Website** ([sungmyeonggi.github.io/Lunaread](https://sungmyeonggi.github.io/Lunaread/)) | Static Next.js export on GitHub Pages | Calls the local server at `http://127.0.0.1:8787` when it is running |
 | **Local web** (`npm start`) | The same export, served by the local server | Same origin, works out of the box |
-| **Desktop app** (Electron) | Starts the server in-process on a free port and opens a window | Works out of the box |
+| **Desktop app** ([macOS](https://github.com/SUNGMYEONGGI/Lunaread/releases/latest/download/Lunaread-arm64.dmg) · [Windows](https://github.com/SUNGMYEONGGI/Lunaread/releases/latest/download/Lunaread-Setup-x64.exe)) | Electron; starts the server in-process on a free port and opens a window | Works out of the box |
 
 Without the server you can still read papers and add highlights and notes, everything except AI and fetching PDFs by link.
 
@@ -57,6 +59,20 @@ The model list comes from each engine. For Claude, that is the models your plan 
 
 ## Quick start
 
+### Desktop app
+
+1. Download the latest release: [**`Lunaread-arm64.dmg`**](https://github.com/SUNGMYEONGGI/Lunaread/releases/latest/download/Lunaread-arm64.dmg) (macOS, Apple Silicon) or [**`Lunaread-Setup-x64.exe`**](https://github.com/SUNGMYEONGGI/Lunaread/releases/latest/download/Lunaread-Setup-x64.exe) (Windows). All builds are on [Releases](https://github.com/SUNGMYEONGGI/Lunaread/releases).
+2. **macOS.** Drag **Lunaread** to Applications. The build is signed ad hoc only, so Gatekeeper blocks the first launch. Right-click the app and choose **Open**, or run:
+
+   ```sh
+   xattr -dr com.apple.quarantine /Applications/Lunaread.app
+   ```
+
+   **Windows.** Run the installer. SmartScreen may warn about an unknown publisher; choose **More info**, then **Run anyway**.
+3. The app uses the Claude Code and Codex logins already on this computer. You don't need to configure anything else.
+
+### From source
+
 ```sh
 git clone https://github.com/SUNGMYEONGGI/Lunaread.git
 cd Lunaread
@@ -70,7 +86,7 @@ You can now use either address:
 - **http://127.0.0.1:8787**, served by the local server.
 - **The [website](https://sungmyeonggi.github.io/Lunaread/library/).** It finds the server on its own. The first time, Chrome asks for permission to access devices on your local network; choose **Allow**.
 
-To use the desktop app instead, run `npm run desktop`.
+To run the desktop app from source, use `npm run desktop`.
 
 ## Try it
 
@@ -176,7 +192,7 @@ In the browser, the IndexedDB database `lunaread` holds papers, PDFs, highlights
 | `electron/main.cjs` | Desktop shell; imports the compiled `dist-server/server.js` |
 | `lib/*.test.ts` | Unit tests for layout block grouping and theme derivation |
 
-## Build and deploy
+## Build and release
 
 ```sh
 npm run typecheck    # tsc for the app and the server
@@ -185,26 +201,44 @@ npm run build        # next build (out/) + tsc server (dist-server/)
 npm run build:pages  # export with basePath /Lunaread for GitHub Pages
 npm run dev          # server + next dev at http://localhost:3000
 npm run desktop      # build, then Electron
-npm run dist:mac     # macOS .dmg
-npm run dist:win     # Windows installer
+npm run dist:mac     # dist/Lunaread-arm64.dmg
+npm run dist:win     # dist/Lunaread-Setup-x64.exe
 ```
+
+| Item | Value |
+| --- | --- |
+| App ID | `io.lunaread.app` |
+| Targets | macOS `dmg` (arm64), Windows `nsis` (x64) |
+| Icon | `build/icon.png`, rendered from `build/icon.svg` |
+| Packaged files | `out/**`, `dist-server/**`, `electron/**`, `package.json`, and the runtime `dependencies`, which include the Claude Code and Codex binaries for the platform |
+| Signing | Ad hoc on macOS (`identity: "-"`). Windows builds are unsigned. |
+
+### Releasing
+
+Releases are continuous. Every push to `main` that changes more than Markdown or `docs/` runs `.github/workflows/release.yml`:
+
+1. Builds on `macos-14` and `windows-latest` in parallel. Each job sets the version to `<major>.<minor>.<run number>`, runs the typecheck and the tests, and packages the installer.
+2. Publishes both files as GitHub Release `v<version>`, with notes generated from the commits, and marks it latest.
+
+The download links on the website and in this README point to `releases/latest/download/…`, so they always serve the newest build. To start a new minor line, change `version` in `package.json`.
 
 ### Website
 
-Every push to `main` runs `.github/workflows/deploy.yml`. It installs dependencies, runs `npm run build:pages` and deploys `out/` to GitHub Pages at <https://sungmyeonggi.github.io/Lunaread/>.
+Every push to `main` also runs `.github/workflows/deploy.yml`. It runs `npm run build:pages` and deploys `out/` to GitHub Pages at <https://sungmyeonggi.github.io/Lunaread/>.
 
 ## Limitations
 
 - On the website, AI features need the local server, plus the browser's permission to reach it.
 - Only one person, one browser. There is no sync between devices.
 - Scanned PDFs without a text layer get no selection actions, search or Auto Highlight.
-- Desktop builds are unsigned.
+- Desktop builds are not notarized or code-signed. macOS ships for Apple Silicon only, Windows for x64 only.
 - The interface is in English only.
 
 ## Roadmap
 
 - [ ] OCR for scanned PDFs
-- [ ] Signed desktop releases with auto-update
+- [ ] Signed and notarized desktop builds, with auto-update
+- [ ] Intel Mac and Linux builds
 - [ ] Export and import of the library
 - [ ] Sync across devices
 
