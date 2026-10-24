@@ -39,6 +39,7 @@ export function ServerBanner() {
         <b>Connect the Lunaread server to use AI features</b>
         <p className="text-muted">Reading and markup work here already. For AI, run the server on this computer so it can use your Claude / ChatGPT login:</p>
         <code className="mt-2 block overflow-x-auto rounded-lg bg-surface-2 px-3 py-2 font-mono text-xs">git clone {REPO_URL} && cd Lunaread && npm i && npm run build && npm start</code>
+        <p className="mt-2 text-xs text-muted">If the browser asks to access devices on your local network, choose Allow, then Retry.</p>
       </div>
       <button className="btn btn-outline btn-sm" onClick={() => serverOnline().then(setOnline)}><Icon name="refresh" size={14} />Retry</button>
     </div>

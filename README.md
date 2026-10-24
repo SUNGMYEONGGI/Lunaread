@@ -25,7 +25,7 @@ Lunaread is a static Next.js export plus a small local Node server. The server t
 | `codex-sub` | Your ChatGPT/Codex login, through the Codex SDK |
 | `anthropic-api` / `openai-api` | An API key entered in Settings (stored only in your browser) |
 
-The GitHub Pages site cannot reach AI on its own. Reading and markup work there without a server. To use AI features, run the server on your computer; the Pages site connects to `http://127.0.0.1:8787` automatically.
+The GitHub Pages site cannot reach AI on its own. Reading and markup work there without a server. To use AI features, run the server on your computer; the Pages site connects to `http://127.0.0.1:8787` automatically. Chrome first asks for permission to access your local network; allow it.
 
 ```bash
 git clone https://github.com/SUNGMYEONGGI/Lunaread && cd Lunaread
