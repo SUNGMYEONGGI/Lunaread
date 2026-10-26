@@ -27,13 +27,13 @@ export const PROMPTS: Record<string, Prompt> = {
   },
   translate: {
     paper: false, effort: 'low',
-    system: (lang: string) => `You are a professional translator of academic papers. Translate into natural, fluent ${lang}, keeping technical terms accurate (keep the original term in parentheses on first use when helpful). Output only the translation.`,
-    user: ({ text }) => text,
+    system: (lang: string) => `You are a professional translator of academic papers. Translate into natural, fluent ${lang}, keeping technical terms accurate (keep the original term in parentheses on first use when helpful). Keep citations, numbers and math unchanged. Output only the translation.`,
+    user: ({ text, glossary }) => `${glossary ? `Glossary (follow exactly):\n${glossary}\n\n` : ''}${text}`,
   },
-  translateBlocks: {
+  translateParas: {
     paper: false, effort: 'low',
-    system: (lang: string) => `You translate academic paper text blocks into natural ${lang}. Keep math, citations like [12], and numbers unchanged.`,
-    user: ({ blocks }) => `Translate each block. Return the same number of items in the same order.\n\n${JSON.stringify(blocks)}`,
+    system: (lang: string) => `You translate paragraphs of an academic paper into natural, fluent ${lang}. Keep every placeholder like ⟦0⟧ exactly as written, and keep numbers, math and code unchanged. Text extracted from PDFs may contain broken hyphenation or stray line breaks; fix those silently.`,
+    user: ({ paras, glossary }) => `${glossary ? `Glossary (follow exactly):\n${glossary}\n\n` : ''}Translate each paragraph. Return exactly ${paras.length} translations in the same order.\n\n${JSON.stringify(paras)}`,
   },
   autoHighlight: {
     system: base,
@@ -71,7 +71,7 @@ export const SCHEMAS: Record<string, object> = {
     type: 'object', additionalProperties: false, required: ['highlights'],
     properties: { highlights: { type: 'array', items: { type: 'object', additionalProperties: false, required: ['text', 'category'], properties: { text: { type: 'string' }, category: { type: 'string', enum: ['novelty', 'method', 'result'] } } } } },
   },
-  translateBlocks: {
+  translateParas: {
     type: 'object', additionalProperties: false, required: ['translations'],
     properties: { translations: { type: 'array', items: { type: 'string' } } },
   },

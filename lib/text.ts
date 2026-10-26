@@ -41,3 +41,57 @@ export function blocks(items: Item[]): Block[] {
   }
   return out.filter(b => b.text.trim().length > 1).map(b => ({ ...b, text: b.text.replace(/-\s(?=\p{Ll})/gu, '').trim() }));
 }
+
+// Citations, cross-references and URLs are swapped for ⟦n⟧ placeholders before translation and put back after,
+// so models cannot mangle "[12]", "Fig. 3(a)" or "(Smith et al., 2020)".
+const PROTECT = new RegExp([
+  String.raw`\[\d+(?:\s*[,–-]\s*\d+)*\]`, // [12], [3, 5–7]
+  String.raw`\((?:[A-Z][\p{L}'-]+(?: (?:et al\.|and|&) ?[A-Z]?[\p{L}'-]*)*,? (?:19|20)\d{2}[a-z]?(?:; ?)?)+\)`, // (Smith et al., 2020; Lee, 2021)
+  String.raw`\b(?:Fig(?:ure)?s?|Tab(?:le)?s?|Eqs?|Equations?|Sec(?:tion)?s?|Alg(?:orithm)?|Appendix)\.? ?\(?[A-Z]?\d+(?:\.\d+)*\)?(?:\s?\([a-z]\))?`, // Fig. 3(a), Eq. (2), Table 1
+  String.raw`https?://\S+`,
+].join('|'), 'gu');
+
+export function mask(text: string) {
+  const tokens: string[] = [];
+  return { text: text.replace(PROTECT, m => `⟦${tokens.push(m) - 1}⟧`), tokens };
+}
+export const unmask = (text: string, tokens: string[]) => text.replace(/⟦\s*(\d+)\s*⟧/g, (m, i) => tokens[+i] ?? m);
+
+// Glossary lines: "term" keeps the term untranslated, "term = translation" fixes its translation.
+export function glossaryRules(...texts: (string | undefined)[]) {
+  return texts.join('\n').split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#')).map(l => {
+    const [term, tr] = l.split(/\s*=\s*/, 2);
+    return tr ? `- "${term}" → "${tr}"` : `- "${term}": keep untranslated`;
+  }).join('\n');
+}
+
+// Library retrieval for "ask across papers": split stored paper text into chunks and rank them by keyword overlap.
+// ponytail: TF-IDF over words, no embeddings; good for terms and names, weak for paraphrases.
+export type Chunk = { title: string; page: number; text: string };
+const STOP = new Set('the and for are with that this from what which how does into have has was were its can not but our their about than then them they these those when where who why will would should could also more most such using used between paper'.split(' '));
+const words = (s: string) => (s.toLowerCase().match(/[\p{L}\p{N}]{3,}/gu) || []).filter(w => !STOP.has(w));
+
+export function chunkPaper(title: string, fullText: string, size = 1200): Chunk[] {
+  const out: Chunk[] = [];
+  for (const part of fullText.split(/\[Page (\d+)\]\n/).reduce<[number, string][]>((acc, s, i, a) => (i % 2 ? [...acc, [+s, a[i + 1] || '']] : acc), [])) {
+    const [page, text] = part;
+    for (let i = 0; i < text.length; i += size) out.push({ title, page, text: text.slice(i, i + size) });
+  }
+  return out;
+}
+
+export function topChunks(question: string, chunks: Chunk[], k = 8): Chunk[] {
+  const q = [...new Set(words(question))];
+  const tf = chunks.map(c => { const m = new Map<string, number>(); for (const w of words(c.text)) m.set(w, (m.get(w) || 0) + 1); return m; });
+  const idf = new Map(q.map(w => [w, Math.log(1 + chunks.length / (1 + tf.filter(t => t.has(w)).length))]));
+  return chunks.map((c, i) => ({ c, s: q.reduce((s, w) => s + Math.log(1 + (tf[i].get(w) || 0)) * idf.get(w)!, 0) }))
+    .filter(x => x.s > 0).sort((a, b) => b.s - a.s).slice(0, k).map(x => x.c);
+}
+
+// Subsequence match: every query character appears in order. Earlier, tighter matches rank higher.
+export function fuzzy(q: string, s: string) {
+  q = q.toLowerCase(); s = s.toLowerCase();
+  let at = -1, score = 0;
+  for (const c of q) { const i = s.indexOf(c, at + 1); if (i < 0) return -1; score += i - at; at = i; }
+  return score;
+}

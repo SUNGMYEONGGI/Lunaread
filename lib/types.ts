@@ -7,13 +7,18 @@ export type ChatMsg = { role: 'user' | 'assistant'; content: string; at: number;
 export type Summary = { keywords: { term: string; definition: string }[]; summary: string; questions: string[] };
 export type AutoHl = { text: string; category: 'novelty' | 'method' | 'result'; page?: number; rects?: Rect[] };
 export type Block = Rect & { text: string; lineH: number };
+// One translated paragraph, with its box on the page.
+export type Para = Rect & { src: string; tr: string };
 export type Doc = {
   id: string; title: string; url?: string; addedAt: number; openedAt?: number; folder: string;
-  marks: Mark[]; chat: ChatMsg[]; cards: Card[]; translations: Record<number, string>;
+  marks: Mark[]; chat: ChatMsg[]; cards: Card[]; translations: Record<number, Para[]>; glossary?: string;
   thumb?: string; pages?: number; lastPage?: number; summary?: Summary; auto?: AutoHl[]; discussion?: string;
   citations?: Record<string, string>; fileId?: string; fullText?: string;
 };
 export type Provider = 'claude-sub' | 'codex-sub' | 'anthropic-api' | 'openai-api';
 export type ModelChoice = { provider: Provider; model: string };
-export type Settings = ModelChoice & { apiKey: string; openaiKey: string; lang: string; theme: 'light' | 'dark'; palette: string | null; server: string };
+export type Settings = ModelChoice & {
+  apiKey: string; openaiKey: string; lang: string; theme: 'light' | 'dark'; palette: string | null; server: string;
+  trModel: ModelChoice | null; glossary: string; hoverTranslate: boolean; darkPdf: boolean;
+};
 export type ProviderInfo = { id: Provider; label: string; models: { id: string; label: string }[]; error?: string };

@@ -51,17 +51,24 @@ type Body = {
   task: string; provider?: string; model?: string; lang?: string; text?: string; image?: string;
   fileId?: string; paperText?: string; refs?: { title: string; fileId?: string; text?: string }[];
   history?: { role: 'user' | 'assistant'; content: string }[]; extra?: Record<string, unknown>;
+  excerpts?: { title: string; page: number; text: string }[];
 };
+
+// Retrieved passages from other papers in the library ("ask across papers").
+const excerptText = (ex: Body['excerpts'] = []) => ex.length
+  ? `Passages from other papers in the reader's library. Cite them as (Title, p.N) when you use them.\n<library>\n${ex.map(e => `<excerpt title=${JSON.stringify(e.title)} page="${e.page}">\n${e.text}\n</excerpt>`).join('\n')}\n</library>\n\n`
+  : '';
 const prompt = (task: string) => PROMPTS[task] ?? (() => { throw fail(`Unknown task ${task}`, 400); })();
 
 // Anthropic API: the paper goes first with cache_control so every follow-up on the same paper reuses the cached prefix.
 function buildRequest(body: Body): any {
-  const { task, model, fileId, refs = [], lang = 'Korean', text = '', image, history = [], extra = {} } = body;
+  const { task, model, fileId, refs = [], lang = 'Korean', text = '', image, history = [], extra = {}, excerpts } = body;
   const p = prompt(task);
   const content: any[] = [];
   if (fileId && p.paper !== false) content.push({ type: 'document', source: { type: 'file', file_id: fileId }, title: 'Current paper', cache_control: { type: 'ephemeral' } });
   for (const r of refs) content.push({ type: 'document', source: { type: 'file', file_id: r.fileId }, title: `Reference: ${r.title}` });
   if (image) content.push({ type: 'image', source: { type: 'base64', media_type: 'image/png', data: image } });
+  if (excerpts?.length) content.push({ type: 'text', text: excerptText(excerpts) });
   content.push({ type: 'text', text: p.user({ text, lang, ...extra }) });
 
   const messages = task === 'chat'
@@ -85,11 +92,12 @@ function buildRequest(body: Body): any {
 
 // Providers without the Files API get the paper as extracted text instead.
 function buildText(body: Body, req: Req) {
-  const { task, model, lang = 'Korean', text = '', paperText, refs = [], history = [], extra = {}, image } = body;
+  const { task, model, lang = 'Korean', text = '', paperText, refs = [], history = [], extra = {}, image, excerpts } = body;
   const p = prompt(task);
   let user = '';
   if (paperText && p.paper !== false) user += `<paper>\n${paperText}\n</paper>\n\n`;
   for (const r of refs) user += `<reference title="${r.title}">\n${r.text}\n</reference>\n\n`;
+  user += excerptText(excerpts);
   user += task === 'chat'
     ? `${history.map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`).join('\n\n')}\n\nReply to the last user message.`
     : p.user({ text, lang, ...extra });

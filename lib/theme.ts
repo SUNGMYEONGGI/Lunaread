@@ -29,9 +29,10 @@ export function paletteTokens(code: string, dark: boolean): Record<string, strin
   };
 }
 
-export function applyTheme({ theme, palette }: { theme: string; palette: string | null }) {
+export function applyTheme({ theme, palette, darkPdf }: { theme: string; palette: string | null; darkPdf?: boolean }) {
   const root = document.documentElement;
   root.dataset.theme = theme;
+  if (darkPdf !== undefined) root.dataset.darkPdf = String(darkPdf);
   const tokens: Record<string, string> = palette ? paletteTokens(palette, theme === 'dark') : {};
   for (const k of ['--bg', '--text', '--accent', '--ai', '--surface', '--surface-2', '--border', '--muted', '--accent-soft']) {
     if (tokens[k]) root.style.setProperty(k, tokens[k]); else root.style.removeProperty(k);

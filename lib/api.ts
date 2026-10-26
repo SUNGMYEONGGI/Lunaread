@@ -14,7 +14,7 @@ export const DOWNLOADS = {
 };
 
 // provider: claude-sub | codex-sub (local CLI logins = the user's subscriptions) | anthropic-api | openai-api
-const DEFAULTS: Settings = { apiKey: '', openaiKey: '', provider: 'claude-sub', model: 'default', lang: 'Korean', theme: 'light', palette: null, server: '' };
+const DEFAULTS: Settings = { apiKey: '', openaiKey: '', provider: 'claude-sub', model: 'default', lang: 'Korean', theme: 'light', palette: null, server: '', trModel: null, glossary: '', hoverTranslate: true, darkPdf: false };
 export function getSettings(): Settings {
   let saved: Partial<Settings> = {};
   try { saved = JSON.parse(localStorage.getItem('settings') || '{}') || {}; } catch { /* private mode */ }
@@ -59,7 +59,7 @@ export async function fetchPalettes(step: number, sort: string, tags: string): P
 }
 
 // Providers other than the Anthropic API get the paper as plain text (cached on the doc).
-async function docText(doc: Doc) {
+export async function docText(doc: Doc) {
   if (doc.fullText) return doc.fullText;
   const pdf = await loadPdf(await getFile(doc.id));
   const pages = [];
@@ -81,7 +81,7 @@ export async function ensureFileId(doc: Doc, force?: boolean) {
   return doc.fileId;
 }
 
-export type AiBody = { task: string; text?: string; image?: string; extra?: Record<string, unknown>; history?: { role: string; content: string }[]; refs?: { id: string }[]; provider?: string; model?: string };
+export type AiBody = { task: string; text?: string; image?: string; extra?: Record<string, unknown>; history?: { role: string; content: string }[]; refs?: { id: string }[]; provider?: string; model?: string; excerpts?: { title: string; page: number; text: string }[] };
 
 async function withPaper<T>(doc: Doc | null, body: AiBody, call: (full: Record<string, unknown>) => Promise<T>): Promise<T> {
   const { lang, model, provider } = getSettings();

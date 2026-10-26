@@ -1,4 +1,5 @@
 'use client';
+import Modal from './Modal';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { fetchModels, fetchPalettes, getSettings, saveSettings } from '@/lib/api';
@@ -70,8 +71,8 @@ export function ThemePicker({ onClose }: { onClose: () => void }) {
   const save = () => { saveSettings({ ...getSettings(), ...sel }); onClose(); };
 
   return (
-    <div className="modal-bg" onMouseDown={e => e.target === e.currentTarget && cancel()}>
-      <div className="modal grid max-h-[min(780px,calc(100vh-32px))] max-w-[880px] grid-rows-[auto_auto_1fr_auto]" role="dialog" aria-label="Color theme">
+    <Modal onClose={cancel} label="Color theme">
+      <div className="modal grid max-h-[min(780px,calc(100vh-32px))] max-w-[880px] grid-rows-[auto_auto_1fr_auto]">
         <div className="flex flex-wrap items-center gap-3">
           <h3 className="text-lg font-bold tracking-tight">Color theme</h3>
           <div className="inline-flex gap-0.5 rounded-full bg-surface-2 p-1">
@@ -104,7 +105,7 @@ export function ThemePicker({ onClose }: { onClose: () => void }) {
           <button className="btn btn-primary btn-sm" onClick={save}>Apply theme</button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }
 
@@ -128,8 +129,8 @@ export function GetStarted({ onClose }: { onClose: () => void }) {
   );
   const ant = key.trim().startsWith('sk-ant-');
   return (
-    <div className="modal-bg" onMouseDown={e => e.target === e.currentTarget && onClose()}>
-      <div className="grid w-full max-w-[900px] overflow-hidden rounded-3xl border border-line bg-surface shadow-soft md:grid-cols-[380px_1fr]" role="dialog" aria-label="Get started" style={{ animation: 'fade-up .2s var(--ease)' }}>
+    <Modal onClose={onClose} label="Get started">
+      <div className="grid w-full max-w-[900px] overflow-hidden rounded-3xl border border-line bg-surface shadow-soft md:grid-cols-[380px_1fr]" style={{ animation: 'fade-up .2s var(--ease)' }}>
         <div className="relative hidden flex-col justify-between overflow-hidden bg-fg p-8 text-bg md:flex">
           <div className="dots absolute inset-0 opacity-30" />
           <div className="absolute -right-24 -top-24 size-72 rounded-full bg-accent/60 blur-3xl" />
@@ -150,6 +151,6 @@ export function GetStarted({ onClose }: { onClose: () => void }) {
           <small className="text-center text-xs text-muted">Subscriptions use the Claude Code / Codex CLI logged in on this computer. Keys stay in this browser.</small>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

@@ -4,10 +4,12 @@ import type { Doc } from './types.ts';
 let dbp: Promise<IDBDatabase> | undefined;
 function db() {
   dbp ??= new Promise((resolve, reject) => {
-    const req = indexedDB.open('lunaread', 1);
+    const req = indexedDB.open('lunaread', 2);
     req.onupgradeneeded = () => {
-      req.result.createObjectStore('docs', { keyPath: 'id' });
-      req.result.createObjectStore('files');
+      const names = req.result.objectStoreNames;
+      if (!names.contains('docs')) req.result.createObjectStore('docs', { keyPath: 'id' });
+      if (!names.contains('files')) req.result.createObjectStore('files');
+      if (!names.contains('tr')) req.result.createObjectStore('tr'); // translation cache: hash → text
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -29,6 +31,8 @@ export const listDocs = async () => (await tx<Doc[]>('docs', 'readonly', s => s.
 export const getDoc = (id: string) => tx<Doc | undefined>('docs', 'readonly', s => s.get(id));
 export const putDoc = (doc: Doc) => tx<void>('docs', 'readwrite', s => s.put(doc));
 export const getFile = (id: string) => tx<Uint8Array>('files', 'readonly', s => s.get(id));
+export const getCached = (key: string) => tx<string | undefined>('tr', 'readonly', s => s.get(key));
+export const putCached = (key: string, text: string) => tx<void>('tr', 'readwrite', s => s.put(text, key));
 export async function deleteDoc(id: string) {
   await tx('docs', 'readwrite', s => s.delete(id));
   await tx('files', 'readwrite', s => s.delete(id));

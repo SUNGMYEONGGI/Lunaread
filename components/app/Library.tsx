@@ -1,32 +1,15 @@
 'use client';
+import Modal from './Modal';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Icon from '../icons';
 import { Sidebar, ServerBanner } from './Rail';
 import { LogoMark } from '../site/Site';
 import { docsChanged, toast } from './events';
-import { listDocs, addPdf, deleteDoc, putDoc } from '@/lib/db';
-import { fetchPdf, normalizePaperUrl, scholarSearch, type ScholarPaper } from '@/lib/api';
-import { loadPdf, pdfTitle } from '@/lib/pdf';
+import { listDocs, deleteDoc, putDoc } from '@/lib/db';
+import { scholarSearch, type ScholarPaper } from '@/lib/api';
+import { bibLinks, importPdf, importUrl, toBibtex } from '@/lib/library';
 import type { Doc } from '@/lib/types';
-
-// Adds a PDF to the library: reads the title and renders a first-page thumbnail.
-async function importPdf(bytes: Uint8Array, { url, name }: { url?: string; name?: string } = {}) {
-  const pdf = await loadPdf(bytes);
-  const title = await pdfTitle(pdf, name?.replace(/\.pdf$/i, '') || url || 'Untitled');
-  const page = await pdf.getPage(1);
-  const vp = page.getViewport({ scale: 0.5 });
-  const canvas = Object.assign(document.createElement('canvas'), { width: vp.width, height: vp.height });
-  await page.render({ canvas, viewport: vp } as never).promise;
-  const doc = await addPdf(bytes, { title, url });
-  doc.thumb = canvas.toDataURL('image/jpeg', 0.7);
-  doc.pages = pdf.numPages;
-  await putDoc(doc);
-  pdf.loadingTask.destroy();
-  return doc;
-}
-
-const importUrl = async (input: string) => { const url = normalizePaperUrl(input); return importPdf(await fetchPdf(url), { url }); };
 
 function Scholar({ docs, onOpen }: { docs: Doc[]; onOpen: (url: string) => void }) {
   const [q, setQ] = useState('');
@@ -145,6 +128,7 @@ export default function Library() {
   const [busy, setBusy] = useState(false);
   const [newFolder, setNewFolder] = useState<{ doc: Doc; name: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const bibRef = useRef<HTMLInputElement>(null);
 
   const refresh = () => listDocs().then(setDocs);
   useEffect(() => { refresh(); addEventListener('docs-changed', refresh); return () => removeEventListener('docs-changed', refresh); }, []);
@@ -165,6 +149,22 @@ export default function Library() {
     });
   };
 
+  const exportBib = () => {
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([toBibtex(shown)], { type: 'application/x-bibtex' })), download: 'lunaread-library.bib' });
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+  const importBib = async (file?: File) => {
+    if (!file) return;
+    const { links, skipped } = bibLinks(await file.text());
+    if (!links.length) return toast('No arXiv or PDF links found in this file');
+    setBusy(true);
+    let ok = 0;
+    for (const l of links) { try { await importUrl(l); ok++; docsChanged(); } catch { /* counted below */ } }
+    setBusy(false);
+    toast(`Imported ${ok} of ${links.length} papers${skipped ? ` · ${skipped} entries had no PDF link` : ''}`);
+  };
+
   const folders = [...new Set(docs.map(d => d.folder).filter(Boolean))].sort();
   const shown = docs.filter(d => (folder === null || d.folder === folder) && d.title.toLowerCase().includes(filter.toLowerCase()));
   // window.prompt is unavailable in Electron, so new folders use a small modal.
@@ -180,6 +180,7 @@ export default function Library() {
       <main className="flex-1 overflow-auto bg-surface px-5 py-7 md:px-10">
         <div className="mx-auto max-w-5xl"><ServerBanner /></div>
         <input ref={fileRef} type="file" accept="application/pdf,.pdf" multiple hidden onChange={e => { addFiles(e.target.files); e.target.value = ''; }} />
+        <input ref={bibRef} type="file" accept=".bib,application/x-bibtex,text/plain" hidden onChange={e => { importBib(e.target.files?.[0]); e.target.value = ''; }} />
         {scholar ? <div className="mx-auto max-w-4xl"><Scholar docs={docs} onOpen={u => work(() => importUrl(u))} /></div>
           : !all ? <Home busy={busy} onUrl={u => work(() => importUrl(u))} onPick={() => fileRef.current?.click()} onDrop={addFiles} recent={docs} onOpen={open} />
           : (
@@ -187,6 +188,8 @@ export default function Library() {
             <div className="mb-5 flex flex-wrap items-center gap-3">
               <h2 className="mr-auto text-2xl font-semibold tracking-tight">Library</h2>
               <div className="relative"><Icon name="search" size={16} className="absolute left-3 top-3 text-muted" /><input className="input w-64 pl-9" placeholder="Search library" value={filter} onChange={e => setFilter(e.target.value)} /></div>
+              <button className="btn btn-outline h-10" disabled={busy} onClick={() => bibRef.current?.click()} title="Import arXiv / PDF links from a BibTeX file"><Icon name="upload" size={15} />BibTeX</button>
+              <button className="btn btn-outline h-10" disabled={!shown.length} onClick={exportBib} title="Export these papers with highlights and notes (Zotero-compatible)"><Icon name="download" size={15} />Export .bib</button>
               <button className="btn btn-primary h-10" disabled={busy} onClick={() => fileRef.current?.click()}>{busy ? <span className="spin" /> : <Icon name="upload" size={15} />}Upload</button>
             </div>
             <div className="mb-6 flex flex-wrap gap-2">
@@ -219,13 +222,13 @@ export default function Library() {
         )}
       </main>
       {newFolder && (
-        <div className="modal-bg" onMouseDown={e => e.target === e.currentTarget && setNewFolder(null)}>
+        <Modal onClose={() => setNewFolder(null)} label="New folder">
           <form className="modal" onSubmit={e => { e.preventDefault(); const name = newFolder.name.trim(); if (name) move(newFolder.doc, name); setNewFolder(null); }}>
             <h3 className="text-lg font-bold">New folder</h3>
             <input autoFocus className="input" placeholder="Folder name" value={newFolder.name} onChange={e => setNewFolder({ ...newFolder, name: e.target.value })} />
             <button className="btn btn-primary justify-self-end">Create</button>
           </form>
-        </div>
+        </Modal>
       )}
     </div>
   );

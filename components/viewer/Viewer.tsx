@@ -5,13 +5,17 @@ import { useSearchParams } from 'next/navigation';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import Icon from '../icons';
 import { Sidebar } from '../app/Rail';
-import { toast } from '../app/events';
+import { docsChanged, toast } from '../app/events';
 import { getDoc, getFile, putDoc } from '@/lib/db';
-import { aiJSON, streamAI, getSettings } from '@/lib/api';
-import { loadPdf, pageItems, findInItems, pageText } from '@/lib/pdf';
+import { aiJSON, streamAI, getSettings, scholarSearch, type ScholarPaper } from '@/lib/api';
+import { loadPdf, pageItems, findInItems, blocks } from '@/lib/pdf';
+import { translateParas } from '@/lib/translate';
+import { glossaryRules } from '@/lib/text';
 import type { AutoHl, Card, CardType, Doc, Mark, ModelChoice, Rect, Summary } from '@/lib/types';
 import PdfPage, { type Link as PdfLink } from './PdfPage';
-import { ChatThread, TranslatePanel, NotesPanel, DiscussionPanel, Md, Spin } from './Panels';
+import { ChatThread, TranslatePanel, NotesPanel, DiscussionPanel, Md, Spin, type TrAll, type AskOpts } from './Panels';
+import { importUrl, libraryExcerpts } from '@/lib/library';
+
 
 type Zoom = number | 'auto' | 'page-fit' | 'page-width';
 const ZOOMS: [Zoom, string][] = [['auto', 'Automatic Zoom'], ['page-fit', 'Page Fit'], ['page-width', 'Page Width'], [0.5, '50%'], [0.75, '75%'], [1, '100%'], [1.25, '125%'], [1.5, '150%'], [2, '200%'], [3, '300%']];
@@ -44,7 +48,7 @@ export default function Viewer() {
   const [autoOn, setAutoOn] = useState(false);
   const [areaMode, setAreaMode] = useState(false);
   const [sel, setSel] = useState<Sel | null>(null);
-  const [cite, setCite] = useState<{ marker: string; x: number; y: number; body: string; loading: boolean } | null>(null);
+  const [cite, setCite] = useState<{ marker: string; x: number; y: number; body: string; loading: boolean; found?: ScholarPaper[] | 'loading' } | null>(null);
   const [preview, setPreview] = useState<{ src: string; x: number; y: number; w: number; page: number; hold?: boolean } | null>(null);
   const [menu, setMenu] = useState<'share' | 'info' | null>(null);
   const [search, setSearch] = useState<{ q: string; results?: { page: number; rects: Rect[] }[]; idx?: number } | null>(null);
@@ -87,6 +91,8 @@ export default function Viewer() {
     return () => clearTimeout(t);
   }, [doc]);
   const patch = useCallback((fn: (d: Doc) => Partial<Doc>) => setDoc(d => d && ({ ...d, ...fn(d) })), []);
+  // Writes into the paper that started the work, even if the reader switched papers since.
+  const patchDoc = useCallback((docId: string, fn: (d: Doc) => Partial<Doc>) => setDoc(d => d && d.id === docId ? { ...d, ...fn(d) } : d), []);
   const setB = (k: string, v: boolean) => setBusy(b => ({ ...b, [k]: v }));
   const setE = (k: string, v?: string) => setErrs(e => ({ ...e, [k]: v }));
 
@@ -140,7 +146,7 @@ export default function Viewer() {
   }, [patch]);
 
   const explain = (text: string, pg: number) => runCard('explain', { task: 'explain', text, src: text, page: pg });
-  const translate = (text: string, pg: number) => runCard('translate', { task: 'translate', text, src: text, page: pg });
+  const translate = (text: string, pg: number) => runCard('translate', { task: 'translate', text, src: text, page: pg, extra: { glossary: glossaryRules(getSettings().glossary, docRef.current?.glossary) } });
   const explainImage = useCallback((pg: number, image: string) => { setAreaMode(false); runCard('image', { task: 'explainImage', image, page: pg }); }, [runCard]);
   const infographic = (c: Card) => {
     const css = getComputedStyle(document.documentElement);
@@ -148,16 +154,29 @@ export default function Viewer() {
     runCard('infographic', { task: 'infographic', extra: { palette }, text: `${c.src ? `Passage: ${c.src}\n\n` : ''}Explanation: ${c.body}`, src: c.src, page: c.page });
   };
 
-  const ask = async (q: string, { model, refs = [] }: { model: ModelChoice; refs: Doc[] }) => {
-    const at = Date.now();
-    const history = [...(docRef.current!.chat || []).filter(m => m.content && !m.error).map(({ role, content }) => ({ role, content })), { role: 'user', content: q }];
-    patch(d => ({ chat: [...(d.chat || []), { role: 'user', content: q, at }, { role: 'assistant', content: '', at: at + 1 }] }));
-    const upd = (c: { content?: string; error?: string }) => patch(d => ({ chat: d.chat.map(m => m.at === at + 1 ? { ...m, ...c } : m) }));
+  // Chat. `from` replaces the conversation from that message on (edit and resend, regenerate).
+  const chatAbort = useRef<AbortController | null>(null);
+  const ask = async (q: string, { model, refs = [], scope = 'paper' }: AskOpts, from?: number) => {
+    const docId = docRef.current!.id, at = Date.now();
+    const prior = (docRef.current!.chat || []).slice(0, from);
+    const history = [...prior.filter(m => m.content && !m.error).map(({ role, content }) => ({ role, content })), { role: 'user', content: q }];
+    patchDoc(docId, d => ({ chat: [...(d.chat || []).slice(0, from), { role: 'user', content: q, at }, { role: 'assistant', content: '', at: at + 1 }] }));
+    const upd = (c: { content?: string; error?: string }) => patchDoc(docId, d => ({ chat: d.chat.map(m => m.at === at + 1 ? { ...m, ...c } : m) }));
+    const ac = chatAbort.current = new AbortController();
     setB('chat', true);
+    let text = '';
     try {
-      await streamAI(docRef.current, { task: 'chat', history, ...model, refs: refs.map(r => ({ id: r.id })) }, t => upd({ content: t }));
-    } catch (e) { upd({ error: (e as Error).message }); }
+      const excerpts = scope === 'paper' ? undefined : await libraryExcerpts(q, scope, docId);
+      text = await streamAI(docRef.current, { task: 'chat', history, ...model, refs: refs.map(r => ({ id: r.id })), excerpts }, t => upd({ content: (text = t) }), ac.signal);
+    } catch (e) { if (!ac.signal.aborted) upd({ error: (e as Error).message }); else if (!text) upd({ error: 'Stopped' }); }
     setB('chat', false);
+  };
+
+  const exportChat = () => {
+    const d = doc!;
+    const turns = [...(d.cards || []).map(c => ({ at: c.at, md: `**${c.type[0].toUpperCase() + c.type.slice(1)}${c.page ? ` · p.${c.page}` : ''}**${c.src ? `\n\n> ${c.src.replace(/\n/g, '\n> ')}` : ''}\n\n${c.type === 'infographic' ? '_(infographic)_' : c.body || c.error || ''}` })),
+      ...(d.chat || []).map(m => ({ at: m.at, md: m.role === 'user' ? `**You:** ${m.content}` : `**Lunaread:** ${m.content || m.error || ''}` }))].sort((a, b) => a.at - b.at);
+    download(`${d.title.slice(0, 60)} - chat.md`, `# ${d.title}\n\n${d.url ? `Source: ${d.url}\n\n` : ''}${d.summary ? `## Summary\n\n${d.summary.summary}\n\n` : ''}## Conversation\n\n${turns.map(t => t.md).join('\n\n---\n\n')}\n`);
   };
 
   const summarize = async () => {
@@ -189,14 +208,78 @@ export default function Viewer() {
     setB('auto', false);
   };
 
-  const translatePage = async () => {
+  // ---------- translation ----------
+  const trs = (n: number) => { const t = doc?.translations?.[n]; return Array.isArray(t) ? t : undefined; }; // pre-0.2 entries were plain strings
+  const paragraphs = async (n: number) => blocks(await pageItems(pdf!, n)).filter(b => /\p{L}{2}/u.test(b.text));
+  const translatePage = async (n: number, force = false) => {
+    const docId = docRef.current!.id;
+    const bl = await paragraphs(n);
+    // Author names, emails and one-word headings are kept as they are.
+    const todo = bl.filter(b => b.text.split(/\s+/).length >= 3 && !b.text.includes('@'));
+    const tr = await translateParas(docRef.current, todo.map(b => b.text), { force });
+    patchDoc(docId, d => ({ translations: { ...d.translations, [n]: bl.map(b => ({ x: b.x, y: b.y, w: b.w, h: b.h, src: b.text, tr: todo.includes(b) ? tr[todo.indexOf(b)] : b.text })) } }));
+  };
+  const translateCurrent = async (force?: boolean) => {
     const n = page;
-    setB('tr', true); setE('tr');
+    setB(`tr${n}`, true); setE('tr');
+    try { await translatePage(n, force); } catch (e) { setE('tr', (e as Error).message); }
+    setB(`tr${n}`, false);
+  };
+  const [trAll, setTrAll] = useState<TrAll | null>(null);
+  const stopAll = useRef(false);
+  // Whole paper: two pages at a time; finished pages are saved as they land, so a rerun resumes.
+  const translateAll = async () => {
+    stopAll.current = false;
+    const total = pdf!.numPages;
+    const todo = Array.from({ length: total }, (_, i) => i + 1).filter(n => !Array.isArray(docRef.current!.translations?.[n]));
+    let done = total - todo.length;
+    const failed: number[] = [];
+    setTrAll({ done, total, failed, running: true });
+    const worker = async () => {
+      for (let n = todo.shift(); n && !stopAll.current; n = todo.shift()) {
+        try { await translatePage(n); } catch { failed.push(n); }
+        done++;
+        setTrAll({ done, total, failed: [...failed], running: true });
+      }
+    };
+    await Promise.all([worker(), worker()]);
+    setTrAll({ done, total, failed, running: false });
+  };
+  const retranslate = async (n: number, i: number) => {
+    const docId = docRef.current!.id, p = trs(n)![i];
     try {
-      const text = pageText(await pageItems(pdf!, n));
-      await streamAI(null, { task: 'translate', text }, t => patch(d => ({ translations: { ...d.translations, [n]: t } })));
-    } catch (e) { setE('tr', (e as Error).message); }
-    setB('tr', false);
+      const [tr] = await translateParas(docRef.current, [p.src], { force: true });
+      patchDoc(docId, d => ({ translations: { ...d.translations, [n]: d.translations[n].map((q, j) => j === i ? { ...q, tr } : q) } }));
+    } catch (e) { toast((e as Error).message); }
+  };
+
+  // Alt + hover: translate the paragraph under the pointer.
+  const [hoverTr, setHoverTr] = useState<{ x: number; y: number; key: string; text?: string } | null>(null);
+  const hoverTrT = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const onMouseMove = (e: MouseEvent) => {
+    if (!e.altKey || !getSettings().hoverTranslate) return;
+    const pg = (e.target as Element).closest<HTMLElement>('.page');
+    if (!pg) return;
+    const r = pg.getBoundingClientRect(), n = +pg.dataset.page!;
+    const x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+    const pos = { x: Math.min(e.clientX, innerWidth - 440), y: Math.min(e.clientY + 18, innerHeight - 200) };
+    clearTimeout(hoverTrT.current);
+    hoverTrT.current = setTimeout(async () => {
+      const b = (await paragraphs(n)).find(b => x >= b.x && x <= b.x + b.w && y >= b.y - 0.005 && y <= b.y + b.h + 0.005);
+      if (!b) return;
+      const key = `${n}:${b.x}:${b.y}`;
+      setHoverTr(h => h?.key === key ? h : { ...pos, key });
+      try {
+        const text = trs(n)?.find(p => p.src === b.text)?.tr ?? (await translateParas(docRef.current, [b.text]))[0];
+        setHoverTr(h => h?.key === key ? { ...h, text } : h);
+      } catch (e) { setHoverTr(h => h?.key === key ? { ...h, text: `⚠️ ${(e as Error).message}` } : h); }
+    }, 250);
+  };
+
+  const exportTranslation = (bilingual: boolean) => {
+    const pages = Object.entries(doc!.translations || {}).filter(([, v]) => Array.isArray(v)).sort((a, b) => +a[0] - +b[0]);
+    if (!pages.length) return toast('Translate a page first');
+    download(`${doc!.title.slice(0, 60)} - translation.md`, `# ${doc!.title}\n\n${pages.map(([n, ps]) => `## Page ${n}\n\n${ps.map(p => bilingual ? `> ${p.src}\n\n${p.tr}` : p.tr).join('\n\n')}`).join('\n\n')}\n`);
   };
 
   const discuss = async () => {
@@ -242,6 +325,17 @@ export default function Viewer() {
       patch(d => ({ citations: { ...d.citations, [key]: body } }));
     } catch (e) { setCite(c => c && { ...c, body: `⚠️ ${(e as Error).message}` }); }
     setCite(c => c && { ...c, loading: false });
+  };
+
+  // Looks the cited work up on Semantic Scholar using the reference line from the explanation.
+  const findCited = async () => {
+    const ref = (cite!.body.match(/\*\*Reference:\*\*\s*(.+)/)?.[1] || cite!.body).replace(/[*_`]/g, '').slice(0, 300);
+    setCite(c => c && { ...c, found: 'loading' });
+    try { const found = (await scholarSearch(ref)).slice(0, 3); setCite(c => c && { ...c, found }); }
+    catch (e) { toast((e as Error).message); setCite(c => c && { ...c, found: undefined }); }
+  };
+  const addCited = async (url: string) => {
+    try { await importUrl(url); docsChanged(); toast('Added to your library'); } catch (e) { toast((e as Error).message); }
   };
 
   // Clicking a citation marker inside the text layer.
@@ -321,9 +415,20 @@ export default function Viewer() {
       if ((e.metaKey || e.ctrlKey) && e.key === 'f') { e.preventDefault(); setSearch(s => s || { q: '' }); }
       if (e.key === 'Escape') { setSel(null); setCite(null); setPreview(null); setMenu(null); setAreaMode(false); }
     };
+    const act = (e: Event) => ({ 'summarize': () => summarizeRef.current(), 'translate-page': () => { setTab('translate'); translateRef.current(); }, 'translate-paper': () => { setTab('translate'); translateAllRef.current(); }, 'auto-highlight': () => autoRef.current(), 'export-chat': () => exportRef.current() } as Record<string, () => void>)[(e as CustomEvent).detail]?.();
+    addEventListener('reader-action', act);
+    const up = (e: KeyboardEvent) => { if (e.key === 'Alt') { clearTimeout(hoverTrT.current); setHoverTr(null); } };
     addEventListener('keydown', key);
-    return () => removeEventListener('keydown', key);
+    addEventListener('keyup', up);
+    return () => { removeEventListener('keydown', key); removeEventListener('keyup', up); removeEventListener('reader-action', act); };
   }, []);
+
+  // Latest handlers for the command palette (the listener is registered once).
+  const summarizeRef = useRef(summarize); summarizeRef.current = summarize;
+  const translateRef = useRef(() => translateCurrent()); translateRef.current = () => translateCurrent();
+  const translateAllRef = useRef(translateAll); translateAllRef.current = translateAll;
+  const autoRef = useRef(autoHighlight); autoRef.current = autoHighlight;
+  const exportRef = useRef(exportChat); exportRef.current = exportChat;
 
   const exportNotes = () => {
     const marks = [...(doc!.marks || [])].sort((a, b) => a.page - b.page);
@@ -355,7 +460,7 @@ export default function Viewer() {
             <header className="flex h-14 shrink-0 items-center gap-2 px-4">
               <h1 className="min-w-0 flex-1 truncate text-[15px] font-semibold" title={doc.title}>{doc.title}</h1>
             </header>
-            <ChatThread doc={doc} summary={doc.summary} summarizing={busy.summary} onSummarize={summarize} onAsk={ask} chatBusy={busy.chat}
+            <ChatThread doc={doc} summary={doc.summary} summarizing={busy.summary} onSummarize={summarize} onAsk={ask} chatBusy={busy.chat} onStop={() => chatAbort.current?.abort()}
               onRemoveCard={cid => patch(d => ({ cards: d.cards.filter(c => c.id !== cid) }))} onInfographic={infographic} onJump={jump} draft={draft} setDraft={setDraft}
               pdfOpen={pdfOpen} onShowPdf={() => pdfOpen ? jump(1) : setPdfOpen(true)}
               actions={[['highlighter', doc.auto ? 'Toggle Auto Highlight' : 'Auto Highlight', autoHighlight], ['chat', 'Discussion', () => setTab('discussion')], ['languages', 'Translate this page', () => setTab('translate')]]} />
@@ -398,7 +503,7 @@ export default function Viewer() {
             </aside>
           )}
           <div className="relative flex min-w-0 flex-1">
-            <div className="flex-1 overflow-auto bg-surface-2" ref={stage} onScroll={onScroll} onMouseUp={onMouseUp} onClick={onClick}>
+            <div className="flex-1 overflow-auto bg-surface-2" ref={stage} onScroll={onScroll} onMouseUp={onMouseUp} onClick={onClick} onMouseMove={onMouseMove}>
               <div className="flex w-max min-w-full flex-col items-center gap-4 px-5 pb-20 pt-5">
                 {sizes.map((s, i) => (
                   <PdfPage key={i} pdf={pdf} n={i + 1} size={s} scale={scale} near={near(i + 1)}
@@ -422,7 +527,11 @@ export default function Viewer() {
               <div className="flex h-14 shrink-0 items-center border-b border-line px-4 font-semibold">{tabs.find(t => t[0] === tab)![2]}
                 <button className="icon-btn ml-auto" onClick={() => setTab(null)} title="Close panel"><Icon name="x" size={16} /></button>
               </div>
-              {tab === 'translate' && <TranslatePanel page={page} text={doc.translations?.[page]} busy={busy.tr} error={errs.tr} onTranslate={translatePage} />}
+              {tab === 'translate' && <TranslatePanel page={page} paras={trs(page)} busy={busy[`tr${page}`]} error={errs.tr} onTranslate={translateCurrent}
+                all={trAll} onAll={translateAll} onStop={() => { stopAll.current = true; }} pages={pdf.numPages}
+                translated={Object.values(doc.translations || {}).filter(Array.isArray).length}
+                onRetranslate={i => retranslate(page, i)} onJump={r => jump(page, [r])}
+                glossary={doc.glossary || ''} setGlossary={g => patch(() => ({ glossary: g }))} keywords={doc.summary?.keywords.map(k => k.term)} />}
               {tab === 'notes' && <NotesPanel marks={doc.marks || []} onJump={jump} onExport={exportNotes}
                 onUpdate={(mid, c) => patch(d => ({ marks: d.marks.map(m => m.id === mid ? { ...m, ...c } : m) }))}
                 onDelete={mid => patch(d => ({ marks: d.marks.filter(m => m.id !== mid) }))} />}
@@ -459,6 +568,33 @@ export default function Viewer() {
             <button className="icon-btn ml-auto size-6" onClick={() => setCite(null)}><Icon name="x" size={13} /></button>
           </div>
           {cite.body ? <Md text={cite.body} /> : <Spin />}
+          {!cite.loading && cite.body && !cite.found && <button className="btn btn-outline btn-sm mt-3" onClick={findCited}><Icon name="search" size={14} />Find this paper</button>}
+          {cite.found === 'loading' && <div className="mt-3"><Spin /></div>}
+          {Array.isArray(cite.found) && (
+            <div className="mt-3 grid gap-2 border-t border-line pt-3">
+              {!cite.found.length && <span className="text-muted">Not found on Semantic Scholar.</span>}
+              {cite.found.map(r => {
+                const pdfUrl = r.openAccessPdf?.url || (r.externalIds?.ArXiv && `https://arxiv.org/pdf/${r.externalIds.ArXiv}`);
+                return (
+                  <div key={r.paperId} className="grid gap-1.5 rounded-xl border border-line p-2.5">
+                    <b className="text-[13px] leading-snug">{r.title}</b>
+                    <span className="text-xs text-muted">{r.authors?.slice(0, 3).map(a => a.name).join(', ')} · {r.year}</span>
+                    <div className="flex gap-1.5">
+                      {pdfUrl && <button className="btn btn-primary btn-sm" onClick={() => addCited(pdfUrl)}>Add to library</button>}
+                      <a className="btn btn-outline btn-sm" href={r.url} target="_blank" rel="noreferrer">Semantic Scholar</a>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {hoverTr && (
+        <div className="popover pointer-events-none w-[420px] p-3.5 text-[14px] leading-relaxed" style={{ left: hoverTr.x, top: hoverTr.y }}>
+          <div className="mb-1 flex items-center gap-1.5 text-xs font-bold text-accent"><Icon name="languages" size={13} />Translation</div>
+          {hoverTr.text ?? <Spin />}
         </div>
       )}
 
@@ -472,6 +608,9 @@ export default function Viewer() {
         <div className="popover bottom-3 right-[60px] w-64 p-1.5">
           {doc.url && <button className="menu-item" onClick={() => { navigator.clipboard.writeText(doc.url!); toast('Paper link copied'); setMenu(null); }}><Icon name="link" size={15} />Copy paper link</button>}
           <button className="menu-item" onClick={() => { exportNotes(); setMenu(null); }}><Icon name="download" size={15} />Export notes (Markdown)</button>
+          <button className="menu-item" onClick={() => { exportChat(); setMenu(null); }}><Icon name="chat" size={15} />Export chat (Markdown)</button>
+          <button className="menu-item" onClick={() => { exportTranslation(true); setMenu(null); }}><Icon name="languages" size={15} />Export translation (bilingual)</button>
+          <button className="menu-item" onClick={() => { exportTranslation(false); setMenu(null); }}><Icon name="languages" size={15} />Export translation only</button>
           {doc.summary && <button className="menu-item" onClick={() => { download(`${doc.title.slice(0, 60)} - summary.md`, `# ${doc.title}\n\n${doc.summary!.summary}`); setMenu(null); }}><Icon name="sparkles" size={15} />Export summary</button>}
         </div>
       )}
