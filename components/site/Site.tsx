@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState, type ReactNode } from 'react';
 import Icon from '../icons';
-import { APP_NAME, openGetStarted } from '../app/events';
+import { APP_NAME } from '../app/events';
 import { REPO_URL } from '@/lib/api';
 
 export const LogoMark = ({ size = 26 }: { size?: number }) => (
@@ -24,7 +24,7 @@ export function Page({ children }: { children: ReactNode }) {
   );
 }
 
-const LINKS: [string, string][] = [['/features/', 'Features'], ['/pricing/', 'Pricing'], ['/#download', 'Download'], ['/#faq', 'FAQ'], ['/library/?scholar', 'Explore']];
+const LINKS: [string, string][] = [['/features/', 'Features'], ['/#download', 'Download'], ['/#faq', 'FAQ'], ['/library/?scholar', 'Explore']];
 
 function Nav() {
   const [scrolled, setScrolled] = useState(false);
@@ -43,7 +43,6 @@ function Nav() {
         </nav>
         <div className="ml-auto flex items-center gap-2">
           <a className="icon-btn hidden sm:inline-grid" href={REPO_URL} target="_blank" rel="noreferrer" aria-label="GitHub"><Icon name="github" /></a>
-          <button className="btn btn-outline btn-sm hidden sm:inline-flex" onClick={openGetStarted}>Sign in</button>
           <Link className="btn btn-primary btn-sm" href="/library/">Open reader</Link>
           <button className="icon-btn md:hidden" onClick={() => setOpen(!open)} aria-label="Menu"><Icon name={open ? 'x' : 'menu'} /></button>
         </div>
@@ -71,7 +70,6 @@ function Footer() {
           <div className="grid content-start gap-2">
             <b className="text-fg">Product</b>
             <Link href="/features/" className="hover:text-fg">Features</Link>
-            <Link href="/pricing/" className="hover:text-fg">Pricing</Link>
             <Link href="/library/" className="hover:text-fg">Library</Link>
           </div>
           <div className="grid content-start gap-2">

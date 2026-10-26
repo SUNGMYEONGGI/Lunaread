@@ -2,7 +2,7 @@
 import { memo, useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
 import type { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist';
 import { pdfjs } from '@/lib/pdf';
-import type { LayoutBlock, Rect } from '@/lib/types';
+import type { Rect } from '@/lib/types';
 
 const COLORS: Record<string, string> = { yellow: 'var(--hl-yellow)', green: 'var(--hl-green)', blue: 'var(--hl-blue)', pink: 'var(--hl-pink)', purple: 'var(--hl-purple)', novelty: 'var(--hl-novelty)', method: 'var(--hl-method)', result: 'var(--hl-result)' };
 const pct = (r: Rect) => ({ left: `${r.x * 100}%`, top: `${r.y * 100}%`, width: `${r.w * 100}%`, height: `${r.h * 100}%` });
@@ -21,20 +21,14 @@ async function pageLinks(page: PDFPageProxy): Promise<Link[]> {
   });
 }
 
-function fitFont(b: LayoutBlock, H: number, W: number) {
-  const line = b.lineH * H;
-  const area = b.w * W * b.h * H;
-  return Math.max(6, Math.min(line * 0.92, Math.sqrt(area / (b.tr.length * 0.62 + 1))));
-}
-
 type Props = {
   pdf: PDFDocumentProxy; n: number; size: { w: number; h: number }; scale: number; near: boolean;
-  marks: PageMark[]; flash: (Rect[] & { key?: number }) | null; layout: LayoutBlock[] | null | undefined; areaMode: boolean;
+  marks: PageMark[]; flash: (Rect[] & { key?: number }) | null; areaMode: boolean;
   onArea: (page: number, image: string) => void;
   onLinkEnter: (l: Link, n: number, e: MouseEvent) => void; onLinkLeave: () => void; onLinkClick: (l: Link, n: number, e: MouseEvent) => void;
 };
 
-export default memo(function PdfPage({ pdf, n, size, scale, near, marks, flash, layout, areaMode, onArea, onLinkEnter, onLinkLeave, onLinkClick }: Props) {
+export default memo(function PdfPage({ pdf, n, size, scale, near, marks, flash, areaMode, onArea, onLinkEnter, onLinkLeave, onLinkClick }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [links, setLinks] = useState<Link[]>([]);
   const [box, setBox] = useState<Rect | null>(null);
@@ -116,11 +110,6 @@ export default memo(function PdfPage({ pdf, n, size, scale, near, marks, flash, 
             onClick={e => { if (!l.url) { e.preventDefault(); onLinkClick(l, n, e); } }} />
         ))}
       </div>
-      {layout && (
-        <div className="layout-tr">
-          {layout.map((b, i) => <div key={i} style={{ ...pct(b), fontSize: fitFont(b, H, W) }} title={b.text}>{b.tr}</div>)}
-        </div>
-      )}
       {box && <div className="area-box" style={{ left: box.x, top: box.y, width: box.w, height: box.h }} />}
       <div className="page-num">{n}</div>
     </div>

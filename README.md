@@ -102,7 +102,7 @@ To run the desktop app from source, use `npm run desktop`.
 
 | Surface | Purpose |
 | --- | --- |
-| Landing (`/`, `/features/`, `/pricing/`) | Product site in the style of the Magic UI templates |
+| Landing (`/`, `/features/`) | Product site in the style of the Magic UI templates |
 | Home (`/library/`) | Chatbot-style start screen: one composer that takes a PDF, an arXiv ID or a link |
 | Sidebar | Every paper is a conversation, grouped by Today, Previous 7 days and Older. Also holds New chat, Scholar Deep Search, Library, search and Settings. |
 | Library (`/library/?all`) | All papers as cards, with folder filters, folder moves and delete |
@@ -129,7 +129,6 @@ To run the desktop app from source, use `npm run desktop`.
 - **Explain, translate, ask.** Each selection becomes a card that streams in. A card can also be redrawn as an infographic in your theme's colors.
 - **Image Explanation.** The selected region is rendered at full resolution and sent as an image.
 - **Auto Highlight.** The model returns verbatim key sentences, which are then located in the text layer and highlighted by category.
-- **Layout Translate (beta).** Text blocks are translated and laid over the page in place. Results are cached per page.
 - **Smart Citations.** A citation marker is resolved against the paper's reference list. Results are cached per paper.
 - **Link preview.** Hovering an internal link renders the destination area of the target page.
 - **Library.** Import by arXiv ID, PDF link or drag and drop. Organize papers in folders, search them, and see your reading position.
@@ -167,7 +166,7 @@ In the browser, the IndexedDB database `lunaread` holds papers, PDFs, highlights
 ```
 ┌──────────────────────── Browser / Electron window ────────────────────────┐
 │  Next.js static export (out/)                                             │
-│   app/            /, /features, /pricing, /library, /read                 │
+│   app/            /, /features, /library, /read                           │
 │   components/site Landing, nav, mocks (Magic UI-style effects in CSS)     │
 │   components/app  Library, Rail, Settings, ThemePicker, GetStarted        │
 │   components/viewer Viewer, PdfPage (pdf.js), Panels                      │
@@ -185,7 +184,7 @@ In the browser, the IndexedDB database `lunaread` holds papers, PDFs, highlights
 | Path | Purpose |
 | --- | --- |
 | `app/` | Next.js App Router pages. Library and reader are client-only. |
-| `components/site/` | Landing, features and pricing: nav, hero, bento, feature switcher, FAQ |
+| `components/site/` | Landing and features: nav, hero, bento, feature switcher, FAQ |
 | `components/magic/` | BlurFade, BorderBeam, Marquee, ShinyText (CSS, no motion library) |
 | `components/app/` | Library, rail, settings, the model picker, Color Hunt theme picker, Get started dialog |
 | `components/viewer/` | Reader: zoom, search, selection, citations, link previews, area capture, panels |

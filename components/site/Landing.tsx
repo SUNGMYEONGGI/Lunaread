@@ -14,7 +14,7 @@ const FEATURES = [
   { id: 'explain', icon: 'sparkles', title: 'Explanation', desc: 'Select a sentence or formula and get a plain-language walkthrough in your language.' },
   { id: 'image', icon: 'image', title: 'Figure explanation', desc: 'Drag over a chart, table or equation (⌘/Ctrl + drag) and AI explains how to read it.' },
   { id: 'highlight', icon: 'highlighter', title: 'Auto Highlight', desc: 'Key novelty, method and result sentences, marked in three colors.' },
-  { id: 'translate', icon: 'languages', title: 'Translation', desc: 'Translate a selection, the whole page, or overlay it on the original layout.' },
+  { id: 'translate', icon: 'languages', title: 'Translation', desc: 'Translate a selection, a page, or the whole paper, and read it side by side with the original.' },
   { id: 'citation', icon: 'quote', title: 'Smart Citation', desc: 'Click [12] to see the reference and why it is cited, without scrolling.' },
   { id: 'chat', icon: 'chat', title: 'Chat', desc: 'Ask anything about the paper, and add other papers as references.' },
 ];

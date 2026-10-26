@@ -7,10 +7,9 @@ export type ChatMsg = { role: 'user' | 'assistant'; content: string; at: number;
 export type Summary = { keywords: { term: string; definition: string }[]; summary: string; questions: string[] };
 export type AutoHl = { text: string; category: 'novelty' | 'method' | 'result'; page?: number; rects?: Rect[] };
 export type Block = Rect & { text: string; lineH: number };
-export type LayoutBlock = Block & { tr: string };
 export type Doc = {
   id: string; title: string; url?: string; addedAt: number; openedAt?: number; folder: string;
-  marks: Mark[]; chat: ChatMsg[]; cards: Card[]; translations: Record<number, string>; layout: Record<number, LayoutBlock[]>;
+  marks: Mark[]; chat: ChatMsg[]; cards: Card[]; translations: Record<number, string>;
   thumb?: string; pages?: number; lastPage?: number; summary?: Summary; auto?: AutoHl[]; discussion?: string;
   citations?: Record<string, string>; fileId?: string; fullText?: string;
 };

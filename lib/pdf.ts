@@ -1,7 +1,7 @@
 // pdf.js is browser-only, so it is loaded on first use instead of at import time (pages are prerendered).
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import type { Item } from './types.ts';
-export { findInItems, pageText, blocks } from './layout.ts';
+export { findInItems, pageText, blocks } from './text.ts';
 
 let lib: Promise<typeof import('pdfjs-dist')> | undefined;
 export function pdfjs() {

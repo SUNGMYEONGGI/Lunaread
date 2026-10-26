@@ -1,14 +1,14 @@
 'use client';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type MouseEvent } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import Icon from '../icons';
 import { Sidebar } from '../app/Rail';
-import { toast, openSettings } from '../app/events';
+import { toast } from '../app/events';
 import { getDoc, getFile, putDoc } from '@/lib/db';
 import { aiJSON, streamAI, getSettings } from '@/lib/api';
-import { loadPdf, pageItems, findInItems, pageText, blocks } from '@/lib/pdf';
+import { loadPdf, pageItems, findInItems, pageText } from '@/lib/pdf';
 import type { AutoHl, Card, CardType, Doc, Mark, ModelChoice, Rect, Summary } from '@/lib/types';
 import PdfPage, { type Link as PdfLink } from './PdfPage';
 import { ChatThread, TranslatePanel, NotesPanel, DiscussionPanel, Md, Spin } from './Panels';
@@ -29,7 +29,6 @@ function download(name: string, text: string) {
 
 export default function Viewer() {
   const id = useSearchParams().get('id') || '';
-  const router = useRouter();
   const [doc, setDoc] = useState<Doc | null>(null);
   const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null);
   const [sizes, setSizes] = useState<{ w: number; h: number }[]>([]);
@@ -44,7 +43,6 @@ export default function Viewer() {
   const [showOutline, setShowOutline] = useState(false);
   const [autoOn, setAutoOn] = useState(false);
   const [areaMode, setAreaMode] = useState(false);
-  const [layoutOn, setLayoutOn] = useState(false);
   const [sel, setSel] = useState<Sel | null>(null);
   const [cite, setCite] = useState<{ marker: string; x: number; y: number; body: string; loading: boolean } | null>(null);
   const [preview, setPreview] = useState<{ src: string; x: number; y: number; w: number; page: number; hold?: boolean } | null>(null);
@@ -190,22 +188,6 @@ export default function Viewer() {
     } catch (e) { toast((e as Error).message); }
     setB('auto', false);
   };
-
-  // Layout-preserving translation of the visible page (cached per page).
-  useEffect(() => {
-    if (!layoutOn || !pdf) return;
-    const n = page;
-    if (docRef.current!.layout?.[n] || busy[`layout${n}`]) return;
-    (async () => {
-      setB(`layout${n}`, true);
-      try {
-        const bl = blocks(await pageItems(pdf, n));
-        const { translations } = await aiJSON<{ translations: string[] }>(null, { task: 'translateBlocks', extra: { blocks: bl.map(b => b.text) } });
-        patch(d => ({ layout: { ...d.layout, [n]: bl.map((b, i) => ({ ...b, tr: translations[i] || b.text })) } }));
-      } catch (e) { toast((e as Error).message); setLayoutOn(false); }
-      setB(`layout${n}`, false);
-    })();
-  }, [layoutOn, page, pdf]);
 
   const translatePage = async () => {
     const n = page;
@@ -361,6 +343,7 @@ export default function Viewer() {
   // Chat and PDF can each be hidden, but never both.
   const toggleChat = () => { if (chat && !pdfOpen) setPdfOpen(true); setChat(!chat); };
   const togglePdf = () => { if (pdfOpen && !chat) setChat(true); setPdfOpen(!pdfOpen); };
+  const rail = (on: boolean) => `icon-btn size-10 border ${on ? 'border-line bg-bg text-fg shadow-sm' : 'border-transparent'}`;
   const tool = (on: boolean) => `inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-[13px] font-medium transition ${on ? 'bg-accent-soft text-accent' : 'hover:bg-surface-2'}`;
 
   return (
@@ -371,8 +354,6 @@ export default function Viewer() {
           <section className={`flex min-w-0 flex-col ${pdfOpen ? 'w-[clamp(360px,36vw,560px)] shrink-0 border-r border-line' : 'flex-1'}`}>
             <header className="flex h-14 shrink-0 items-center gap-2 px-4">
               <h1 className="min-w-0 flex-1 truncate text-[15px] font-semibold" title={doc.title}>{doc.title}</h1>
-              {!pdfOpen && <button className="btn btn-outline btn-sm" onClick={togglePdf}><Icon name="file" size={14} />Show PDF</button>}
-              <button className="icon-btn" title="Share" onClick={() => setMenu(menu === 'share' ? null : 'share')}><Icon name="share" /></button>
             </header>
             <ChatThread doc={doc} summary={doc.summary} summarizing={busy.summary} onSummarize={summarize} onAsk={ask} chatBusy={busy.chat}
               onRemoveCard={cid => patch(d => ({ cards: d.cards.filter(c => c.id !== cid) }))} onInfographic={infographic} onJump={jump} draft={draft} setDraft={setDraft}
@@ -383,7 +364,6 @@ export default function Viewer() {
         {pdfOpen && (
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex h-14 shrink-0 items-center gap-1 overflow-x-auto border-b border-line bg-surface px-3 *:shrink-0 [&>:first-child]:ml-auto [&>:last-child]:mr-auto">
-          <button className="icon-btn" title="Close PDF" onClick={togglePdf}><Icon name="x" /></button>
           <button className={`icon-btn ${showOutline ? 'on' : ''}`} title="Outline" onClick={() => setShowOutline(v => !v)}><Icon name="sidebar" /></button>
           <button className="icon-btn max-md:hidden" title="Document info" onClick={() => setMenu(menu === 'info' ? null : 'info')}><Icon name="info" /></button>
           <button className={`icon-btn ${search ? 'on' : ''}`} title="Search (⌘F)" onClick={() => setSearch(s => s ? null : { q: '' })}><Icon name="search" /></button>
@@ -407,10 +387,6 @@ export default function Viewer() {
           <span className="mx-1.5 h-5 w-px bg-line" />
           <button className={tool(autoOn)} onClick={autoHighlight} disabled={busy.auto} title="Auto Highlight">{busy.auto ? <Spin /> : <Icon name="highlighter" size={16} />}<span className="hidden 2xl:inline">Auto Highlight</span></button>
           <button className={tool(areaMode)} onClick={() => setAreaMode(v => !v)} title="Drag over a figure (or ⌘/Ctrl + drag)"><Icon name="image" size={16} /><span className="hidden 2xl:inline">Image Explanation</span></button>
-          <button className={tool(layoutOn)} onClick={() => setLayoutOn(v => !v)} title="Layout Translate (beta)">{busy[`layout${page}`] ? <Spin /> : <Icon name="languages" size={16} />}<span className="hidden 2xl:inline">Layout Translate <sup className="text-[9px] text-muted">beta</sup></span></button>
-          <span className="mx-1.5 h-5 w-px bg-line" />
-          <button className="icon-btn" title="Settings" onClick={openSettings}><Icon name="settings" /></button>
-          <button className="icon-btn" title="Share" onClick={() => setMenu(menu === 'share' ? null : 'share')}><Icon name="share" /></button>
         </div>
 
         <div className="flex min-h-0 flex-1">
@@ -427,7 +403,7 @@ export default function Viewer() {
                 {sizes.map((s, i) => (
                   <PdfPage key={i} pdf={pdf} n={i + 1} size={s} scale={scale} near={near(i + 1)}
                     marks={marksFor(i + 1)} flash={flash?.page === i + 1 ? Object.assign([...flash.rects], { key: flash.key }) : null}
-                    layout={layoutOn ? doc.layout?.[i + 1] : null} areaMode={areaMode} onArea={explainImage}
+                    areaMode={areaMode} onArea={explainImage}
                     onLinkEnter={onLinkEnter} onLinkLeave={onLinkLeave} onLinkClick={onLinkClick} />
                 ))}
               </div>
@@ -454,13 +430,14 @@ export default function Viewer() {
             </section>
           )}
           <nav className="flex w-[52px] shrink-0 flex-col items-center gap-1.5 border-l border-line bg-surface py-2.5">
-            <button className="icon-btn size-10" title="Close panel" onClick={() => setTab(null)}><Icon name="panel" /></button>
-            <button title="AI Colleague" onClick={toggleChat} className={`icon-btn size-10 border ${chat ? 'border-line bg-bg text-fg shadow-sm' : 'border-transparent'}`}><Icon name="bot" /></button>
+            <button title="AI Colleague" aria-pressed={chat} onClick={toggleChat} className={rail(chat)}><Icon name="bot" /></button>
+            <button title="PDF" aria-pressed={pdfOpen} onClick={togglePdf} className={rail(pdfOpen)}><Icon name="file" /></button>
+            <span className="my-1 h-px w-6 bg-line" />
             {tabs.map(([k, icon, label]) => (
-              <button key={k} title={label} onClick={() => setTab(tab === k ? null : k)} className={`icon-btn size-10 border ${tab === k ? 'border-line bg-bg text-fg shadow-sm' : 'border-transparent'}`}><Icon name={icon} /></button>
+              <button key={k} title={label} aria-pressed={tab === k} onClick={() => setTab(tab === k ? null : k)} className={rail(tab === k)}><Icon name={icon} /></button>
             ))}
-            <button className={`icon-btn size-10 ${areaMode ? 'on' : ''}`} title="Image Explanation" onClick={() => setAreaMode(v => !v)}><Icon name="scan" /></button>
-            <button className="icon-btn size-10" title="Scholar Deep Search" onClick={() => router.push('/library/?scholar')}><Icon name="compass" /></button>
+            <span className="flex-1" />
+            <button className={rail(menu === 'share')} title="Share & export" onClick={() => setMenu(menu === 'share' ? null : 'share')}><Icon name="share" /></button>
           </nav>
       </div>
 
@@ -492,7 +469,7 @@ export default function Viewer() {
       )}
 
       {menu === 'share' && (
-        <div className="popover right-[70px] top-14 w-60 p-1.5">
+        <div className="popover bottom-3 right-[60px] w-64 p-1.5">
           {doc.url && <button className="menu-item" onClick={() => { navigator.clipboard.writeText(doc.url!); toast('Paper link copied'); setMenu(null); }}><Icon name="link" size={15} />Copy paper link</button>}
           <button className="menu-item" onClick={() => { exportNotes(); setMenu(null); }}><Icon name="download" size={15} />Export notes (Markdown)</button>
           {doc.summary && <button className="menu-item" onClick={() => { download(`${doc.title.slice(0, 60)} - summary.md`, `# ${doc.title}\n\n${doc.summary!.summary}`); setMenu(null); }}><Icon name="sparkles" size={15} />Export summary</button>}

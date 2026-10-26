@@ -59,7 +59,7 @@ export function ProductMock() {
           <span className="rounded-md border border-line px-2 py-1">Automatic Zoom</span><span className="rounded-md border border-line px-2 py-1">3 / 15</span>
           <span className="inline-flex items-center gap-1 rounded-md bg-accent-soft px-2 py-1 text-accent"><Icon name="highlighter" size={12} />Auto Highlight</span>
           <span className="inline-flex items-center gap-1 px-2 py-1"><Icon name="image" size={12} />Image Explanation</span>
-          <span className="inline-flex items-center gap-1 px-2 py-1"><Icon name="languages" size={12} />Layout Translate</span>
+          <span className="inline-flex items-center gap-1 px-2 py-1"><Icon name="languages" size={12} />Translate</span>
         </div>
       </div>
       <div className="grid md:grid-cols-[1fr_340px]">

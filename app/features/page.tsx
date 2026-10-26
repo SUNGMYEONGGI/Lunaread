@@ -12,7 +12,7 @@ const TABS: Record<string, [string, string, string, string, string, string][]> =
     ['Explanation · Text', 'sparkles', 'Understand complex ideas with AI explanations', 'AI breaks hard sentences and formulas into clear, simple explanations, walking you through the concepts and context step by step.', 'Select text and click Explain on the selection toolbar.', 'explain'],
     ['Explanation · Image', 'image', 'Let AI explain charts and formulas too', 'Tables, figures and equations are no problem. Select the area and AI explains it in detail.', 'Turn on Image Explanation in the top bar, or Cmd/Ctrl + drag over the area.', 'image'],
     ['Auto Highlight', 'highlighter', 'See the key points of the paper automatically', 'AI highlights the main innovations, methods and results in three colors, so complex content stays easy to follow.', 'Click Auto Highlight in the top bar.', 'highlight'],
-    ['Translation', 'languages', 'Quickly understand tough papers with translation', 'Translate just the part you need, the whole page, or overlay the translation on the original layout.', 'Click Translate on the selection toolbar, or open the Translate Page tab.', 'translate'],
+    ['Translation', 'languages', 'Quickly understand tough papers with translation', 'Translate just the part you need, a page, or the whole paper, and read it paragraph by paragraph next to the original.', 'Click Translate on the selection toolbar, or open the Translate Page tab.', 'translate'],
     ['Chat', 'chat', "Ask AI when you're curious", 'Chat about the paper for summaries, concept explanations or quick answers, and add other papers as references.', 'Type in “Ask me anything.” at the bottom of the AI panel.', 'chat'],
   ],
   Navigation: [

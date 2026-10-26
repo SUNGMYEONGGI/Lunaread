@@ -21,7 +21,7 @@ const box = (i: Rect): Rect => ({ x: i.x, y: i.y, w: i.w, h: i.h });
 
 export const pageText = (items: Item[]) => items.map(i => i.str + (i.eol ? '\n' : ' ')).join('').replace(/[ \t]+/g, ' ').replace(/-\n(?=\p{Ll})/gu, '');
 
-// Group items into paragraph-like blocks for layout-preserving translation.
+// Group items into paragraph-like blocks (the unit of translation).
 // ponytail: proximity heuristic, no real layout analysis; tables and figures get rough blocks.
 export function blocks(items: Item[]): Block[] {
   const out: Block[] = [];

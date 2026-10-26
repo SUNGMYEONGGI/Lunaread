@@ -131,8 +131,6 @@ button:disabled { cursor: default; }
 .links { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
 .links a { position: absolute; pointer-events: auto; border-radius: 2px; }
 .links a:hover { background: var(--accent-soft); }
-.layout-tr { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
-.layout-tr div { position: absolute; background: rgba(255,255,255,.97); color: #1b1f1e; overflow: hidden; line-height: 1.2; font-family: "Pretendard Variable", Pretendard, sans-serif; pointer-events: auto; user-select: text; }
 .area-box { position: absolute; z-index: 6; border: 2px solid var(--accent); background: var(--accent-soft); pointer-events: none; }
 .page.area { cursor: crosshair; }
 .page.area .textLayer { pointer-events: none; }

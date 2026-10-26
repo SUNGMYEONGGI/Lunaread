@@ -36,7 +36,7 @@ export async function deleteDoc(id: string) {
 
 export async function addPdf(bytes: Uint8Array, { title, url }: { title?: string; url?: string } = {}) {
   const id = crypto.randomUUID();
-  const doc: Doc = { id, title: title || 'Untitled', url, addedAt: Date.now(), folder: '', marks: [], chat: [], cards: [], translations: {}, layout: {} };
+  const doc: Doc = { id, title: title || 'Untitled', url, addedAt: Date.now(), folder: '', marks: [], chat: [], cards: [], translations: {} };
   await tx('files', 'readwrite', s => s.put(bytes, id));
   await putDoc(doc);
   return doc;
