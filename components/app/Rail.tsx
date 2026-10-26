@@ -146,7 +146,7 @@ export function SetupDialog({ onClose }: { onClose: () => void }) {
         <ol className="grid gap-4 text-[13px] text-muted">
           <Step n={1} title="Easiest: use the desktop app">
             <span>It has the server built in, so nothing else is needed.</span>
-            <div className="flex gap-2"><a className="btn btn-outline btn-sm" href={DOWNLOADS.mac}><Brand name="apple" size={14} />macOS</a><a className="btn btn-outline btn-sm" href={DOWNLOADS.win}><Brand name="windows" size={14} />Windows</a><a className="btn btn-outline btn-sm" href={DOWNLOADS.all} target="_blank" rel="noreferrer">All downloads</a></div>
+            <div className="flex flex-wrap gap-2"><a className="btn btn-outline btn-sm" href={DOWNLOADS.mac}><Brand name="apple" size={14} />macOS</a><a className="btn btn-outline btn-sm" href={DOWNLOADS.win}><Brand name="windows" size={14} />Windows</a><a className="btn btn-outline btn-sm" href={DOWNLOADS.linux}><Brand name="linux" size={14} />Linux</a></div>
           </Step>
           <Step n={2} title="Or run the server from source">
             <span>Needs Node.js 22.18+. Log in to <code className="font-mono">claude</code> or <code className="font-mono">codex</code> once to use your subscription.</span>

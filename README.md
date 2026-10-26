@@ -8,14 +8,14 @@
 
 AI runs through the Claude Agent SDK on your Claude login, or through the Codex SDK on your ChatGPT login. You need no API keys and no cloud account. Your papers, highlights and notes stay in your browser.
 
-[**Website**](https://sungmyeonggi.github.io/Lunaread/) · [**Download for Mac**](https://github.com/SUNGMYEONGGI/Lunaread/releases/latest/download/Lunaread-arm64.dmg) · [**Download for Windows**](https://github.com/SUNGMYEONGGI/Lunaread/releases/latest/download/Lunaread-Setup-x64.exe) · [**Open the reader**](https://sungmyeonggi.github.io/Lunaread/library/) · [**Quick start**](#quick-start) · [**Features**](#features) · [**Architecture**](#architecture) · [**Security model**](#security-model) · [**Build and release**](#build-and-release)
+[**Website**](https://sungmyeonggi.github.io/Lunaread/) · [**Download for Mac**](https://github.com/SUNGMYEONGGI/Lunaread/releases/latest/download/Lunaread-arm64.dmg) · [**Download for Windows**](https://github.com/SUNGMYEONGGI/Lunaread/releases/latest/download/Lunaread-Setup-x64.exe) · [**Download for Linux**](https://github.com/SUNGMYEONGGI/Lunaread/releases/latest/download/Lunaread-x86_64.AppImage) · [**Open the reader**](https://sungmyeonggi.github.io/Lunaread/library/) · [**Quick start**](#quick-start) · [**Features**](#features) · [**Architecture**](#architecture) · [**Security model**](#security-model) · [**Build and release**](#build-and-release)
 
 [![Release](https://github.com/SUNGMYEONGGI/Lunaread/actions/workflows/release.yml/badge.svg)](https://github.com/SUNGMYEONGGI/Lunaread/actions/workflows/release.yml)
 [![Latest release](https://img.shields.io/github/v/release/SUNGMYEONGGI/Lunaread)](https://github.com/SUNGMYEONGGI/Lunaread/releases/latest)
 [![Deploy to GitHub Pages](https://github.com/SUNGMYEONGGI/Lunaread/actions/workflows/deploy.yml/badge.svg)](https://github.com/SUNGMYEONGGI/Lunaread/actions/workflows/deploy.yml)
 ![Next.js](https://img.shields.io/badge/Next.js-16-black.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6.svg)
-![Platform: Web · macOS · Windows](https://img.shields.io/badge/platform-web%20%C2%B7%20macOS%20%C2%B7%20Windows-lightgrey.svg)
+![Platform: Web · macOS · Windows · Linux](https://img.shields.io/badge/platform-web%20%C2%B7%20macOS%20%C2%B7%20Windows%20%C2%B7%20Linux-lightgrey.svg)
 ![Alpha](https://img.shields.io/badge/status-alpha-orange.svg)
 
 <img src="docs/reader.png" width="860" alt="Lunaread reader with the AI Colleague panel">
@@ -61,7 +61,7 @@ The model list comes from each engine. For Claude, that is the models your plan 
 
 ### Desktop app
 
-1. Download the latest release: [**`Lunaread-arm64.dmg`**](https://github.com/SUNGMYEONGGI/Lunaread/releases/latest/download/Lunaread-arm64.dmg) (macOS, Apple Silicon) or [**`Lunaread-Setup-x64.exe`**](https://github.com/SUNGMYEONGGI/Lunaread/releases/latest/download/Lunaread-Setup-x64.exe) (Windows). All builds are on [Releases](https://github.com/SUNGMYEONGGI/Lunaread/releases).
+1. Download the latest release: [**`Lunaread-arm64.dmg`**](https://github.com/SUNGMYEONGGI/Lunaread/releases/latest/download/Lunaread-arm64.dmg) (macOS, Apple Silicon), [**`Lunaread-Setup-x64.exe`**](https://github.com/SUNGMYEONGGI/Lunaread/releases/latest/download/Lunaread-Setup-x64.exe) (Windows) or [**`Lunaread-x86_64.AppImage`**](https://github.com/SUNGMYEONGGI/Lunaread/releases/latest/download/Lunaread-x86_64.AppImage) (Linux). All builds are on [Releases](https://github.com/SUNGMYEONGGI/Lunaread/releases).
 2. **macOS.** Drag **Lunaread** to Applications. The build is signed ad hoc only, so Gatekeeper blocks the first launch. Right-click the app and choose **Open**, or run:
 
    ```sh
@@ -69,7 +69,9 @@ The model list comes from each engine. For Claude, that is the models your plan 
    ```
 
    **Windows.** Run the installer. SmartScreen may warn about an unknown publisher; choose **More info**, then **Run anyway**.
-3. The app uses the Claude Code and Codex logins already on this computer. You don't need to configure anything else.
+
+   **Linux.** `chmod +x Lunaread-x86_64.AppImage`, then run it.
+3. The app uses the Claude Code and Codex logins already on this computer. You don't need to configure anything else. It tells you when a newer release is out.
 
 ### From source
 
@@ -84,7 +86,7 @@ npm start          # http://127.0.0.1:8787
 You can now use either address:
 
 - **http://127.0.0.1:8787**, served by the local server.
-- **The [website](https://sungmyeonggi.github.io/Lunaread/library/).** It finds the server on its own. The first time, Chrome asks for permission to access devices on your local network; choose **Allow**.
+- **The [website](https://sungmyeonggi.github.io/Lunaread/library/).** It finds the server on its own; on the first visit without one, a setup guide walks you through connecting it. Chrome asks for permission to access devices on your local network; choose **Allow**.
 
 To run the desktop app from source, use `npm run desktop`.
 
@@ -96,6 +98,9 @@ To run the desktop app from source, use `npm run desktop`.
 - Turn on **Image Explanation** and drag over a figure. Holding `⌘`/`Ctrl` while dragging does the same.
 - Press **Auto Highlight** to mark novelty, method and result sentences.
 - Click a citation marker such as `[12]`, or hover an internal link to preview its target.
+- Open **Translate Page** in the right rail and press **Translate paper**. Read it paragraph by paragraph next to the original, or hold `Alt`/`⌥` and point at a paragraph in the PDF.
+- In the composer, open **Context** and choose **Whole library** to ask across every paper you have.
+- Press `⌘K`/`Ctrl+K` to jump to a paper or run an action.
 - Open the palette in the left rail and try any Color Hunt palette as the app theme.
 
 ## Main surfaces
@@ -105,20 +110,22 @@ To run the desktop app from source, use `npm run desktop`.
 | Landing (`/`, `/features/`) | Product site in the style of the Magic UI templates |
 | Home (`/library/`) | Chatbot-style start screen: one composer that takes a PDF, an arXiv ID or a link |
 | Sidebar | Every paper is a conversation, grouped by Today, Previous 7 days and Older. Also holds New chat, Scholar Deep Search, Library, search and Settings. |
-| Library (`/library/?all`) | All papers as cards, with folder filters, folder moves and delete |
+| Library (`/library/?all`) | All papers as cards, with folder filters, folder moves, delete, and BibTeX import/export |
 | Scholar Deep Search (`/library/?scholar`) | Semantic Scholar search; open-access PDFs go straight into the library |
 | Reader (`/read/?id=`) | A chat thread next to the PDF canvas. The PDF toolbar sits on top, the panel rail on the right. Either side can be hidden. |
-| Chat thread (AI Colleague) | The paper as an attachment, the keyword dictionary and summary, Auto Highlights, explanation cards as chat turns, Q&A with references and model choice |
-| Translate Page tab | Translates the current page as a stream; results are cached per page |
+| Chat thread (AI Colleague) | The paper as an attachment, the keyword dictionary and summary, Auto Highlights, explanation cards as chat turns, Q&A with stop, edit and regenerate, context from other papers, a folder or the whole library, and model choice |
+| Translate Page tab | Paragraph-by-paragraph translation of a page or the whole paper, bilingual or translation-only view, glossary, translation model |
 | Markup & Notes tab | Every highlight with its note; export them as Markdown |
 | Discussion tab | Strengths, weaknesses and open questions of the paper |
-| Settings | Provider and model, server URL and API keys, answer language, theme |
+| Settings | Provider and model, server URL and API keys, answer language, global glossary, Alt+hover translation, dark PDF pages, theme |
 
 ### Keyboard shortcuts
 
 | Keys | Action |
 | --- | --- |
+| `⌘K` / `Ctrl+K` | Command palette: papers and actions |
 | `⌘F` / `Ctrl+F` | Find in paper (`Enter` next, `Shift+Enter` previous) |
+| `Alt` / `⌥` + point | Translate the paragraph under the pointer |
 | `⌘`/`Ctrl` + drag | Explain the selected area as an image |
 | `Esc` | Close popovers, menus and area mode |
 
@@ -127,13 +134,16 @@ To run the desktop app from source, use `npm run desktop`.
 - **Subscription first.** Claude goes through the Agent SDK with `ANTHROPIC_API_KEY` removed from its environment, so it always uses your login instead of API billing. Codex runs in a read-only sandbox.
 - **The paper as context.** The full text goes along with every question. On the API providers, the PDF is uploaded once through the Files API and then cached.
 - **Explain, translate, ask.** Each selection becomes a card that streams in. A card can also be redrawn as an infographic in your theme's colors.
+- **Paper translator.** Pages are split into paragraphs and translated as a batch. Citations, figure/table/equation references and URLs are masked before translation and restored after, so they come back intact. A glossary (per paper, seeded from the keyword dictionary, plus a global one) fixes or protects terms. Translations are cached in IndexedDB, so the same paragraph is never paid for twice. The whole paper runs two pages at a time in the background, and a rerun resumes where it stopped. Export as bilingual or translation-only Markdown.
+- **Chat like a chatbot.** Stop a reply, edit a message and resend, or regenerate the last answer. Ask across a folder or the whole library: passages are retrieved from the stored text of your papers and cited as (Title, p.N). Export the thread as Markdown.
 - **Image Explanation.** The selected region is rendered at full resolution and sent as an image.
 - **Auto Highlight.** The model returns verbatim key sentences, which are then located in the text layer and highlighted by category.
-- **Smart Citations.** A citation marker is resolved against the paper's reference list. Results are cached per paper.
+- **Smart Citations.** A citation marker is resolved against the paper's reference list, and the cited paper can be found on Semantic Scholar and added to the library. Results are cached per paper.
 - **Link preview.** Hovering an internal link renders the destination area of the target page.
-- **Library.** Import by arXiv ID, PDF link or drag and drop. Organize papers in folders, search them, and see your reading position.
+- **Library.** Import by arXiv ID, PDF link, drag and drop or a BibTeX file. Organize papers in folders, search them, and see your reading position. Export papers with highlights and notes as BibTeX (Zotero imports it).
 - **Themes from Color Hunt.** Infinite scroll through every palette, with a live preview, plus light and dark mode.
-- **Desktop app.** Electron with a hidden-inset title bar on macOS. External links open in the system browser.
+- **Everywhere.** On phones the chat and the PDF become tabs and the sidebar a drawer. The desktop app (Electron) checks GitHub Releases for updates. External links open in the system browser.
+- **Accessible.** Native dialogs with focus trapping and `Esc`, visible focus rings, a command palette, and dark PDF pages for dark mode.
 
 ## Security model
 
@@ -170,7 +180,7 @@ In the browser, the IndexedDB database `lunaread` holds papers, PDFs, highlights
 │   components/site Landing, nav, mocks (Magic UI-style effects in CSS)     │
 │   components/app  Library, Rail, Settings, ThemePicker, GetStarted        │
 │   components/viewer Viewer, PdfPage (pdf.js), Panels                      │
-│   lib/            api, db (IndexedDB), pdf, layout, theme, types          │
+│   lib/            api, db (IndexedDB), pdf, text, translate, library      │
 └───────────────────────────────▲───────────────────────────────────────────┘
                                 │ fetch / SSE   (same origin, or CORS + PNA)
 ┌───────────────────────────────┴──── server/server.ts (127.0.0.1:8787) ────┐
@@ -186,12 +196,12 @@ In the browser, the IndexedDB database `lunaread` holds papers, PDFs, highlights
 | `app/` | Next.js App Router pages. Library and reader are client-only. |
 | `components/site/` | Landing and features: nav, hero, bento, feature switcher, FAQ |
 | `components/magic/` | BlurFade, BorderBeam, Marquee, ShinyText (CSS, no motion library) |
-| `components/app/` | Library, rail, settings, the model picker, Color Hunt theme picker, Get started dialog |
+| `components/app/` | Library, sidebar, settings, setup guide, command palette, the model picker, Color Hunt theme picker, Get started dialog |
 | `components/viewer/` | Reader: zoom, search, selection, citations, link previews, area capture, panels |
-| `lib/` | Typed client: API client, IndexedDB store, pdf.js helpers, layout and theme math |
+| `lib/` | Typed client: API client, IndexedDB store and translation cache, pdf.js helpers, text geometry, masking and retrieval, translator, BibTeX, theme math |
 | `server/` | Node server, AI providers, prompts and schemas |
 | `electron/main.cjs` | Desktop shell; imports the compiled `dist-server/server.js` |
-| `lib/*.test.ts` | Unit tests for layout block grouping and theme derivation |
+| `lib/*.test.ts` | Unit tests for paragraph grouping, masking, glossary, retrieval, fuzzy search, BibTeX and theme derivation |
 
 ## Build and release
 
@@ -204,24 +214,28 @@ npm run dev          # server + next dev at http://localhost:3000
 npm run desktop      # build, then Electron
 npm run dist:mac     # dist/Lunaread-arm64.dmg
 npm run dist:win     # dist/Lunaread-Setup-x64.exe
+npm run dist:linux   # dist/Lunaread-x86_64.AppImage
 ```
 
 | Item | Value |
 | --- | --- |
 | App ID | `io.lunaread.app` |
-| Targets | macOS `dmg` (arm64), Windows `nsis` (x64) |
+| Targets | macOS `dmg` (arm64), Windows `nsis` (x64), Linux `AppImage` (x64) |
 | Icon | `build/icon.png`, rendered from `build/icon.svg` |
 | Packaged files | `out/**`, `dist-server/**`, `electron/**`, `package.json`, and the runtime `dependencies`, which include the Claude Code and Codex binaries for the platform |
-| Signing | Ad hoc on macOS (`identity: "-"`). Windows builds are unsigned. |
+| Signing | Ad hoc on macOS (`identity: "-"`). Windows and Linux builds are unsigned. |
 
 ### Releasing
 
-Releases are continuous. Every push to `main` that changes more than Markdown or `docs/` runs `.github/workflows/release.yml`:
+Releases follow the version in `package.json`. To ship one, bump the version, then push a matching tag:
 
-1. Builds on `macos-14` and `windows-latest` in parallel. Each job sets the version to `<major>.<minor>.<run number>`, runs the typecheck and the tests, and packages the installer.
-2. Publishes both files as GitHub Release `v<version>`, with notes generated from the commits, and marks it latest.
+```sh
+git tag v0.2.0 && git push origin v0.2.0
+```
 
-The download links on the website and in this README point to `releases/latest/download/…`, so they always serve the newest build. To start a new minor line, change `version` in `package.json`.
+`.github/workflows/release.yml` then builds on `macos-14`, `windows-latest` and `ubuntu-latest` in parallel (typecheck, tests, installer) and publishes the three files as GitHub Release `v<version>`, with notes generated from the commits, marked latest. The run fails if the tag and `package.json` disagree. Starting the workflow by hand builds the installers without publishing (a dry run).
+
+The download links on the website and in this README point to `releases/latest/download/…`, so they always serve the newest release.
 
 ### Website
 
@@ -231,16 +245,20 @@ Every push to `main` also runs `.github/workflows/deploy.yml`. It runs `npm run 
 
 - On the website, AI features need the local server, plus the browser's permission to reach it.
 - Only one person, one browser. There is no sync between devices.
-- Scanned PDFs without a text layer get no selection actions, search or Auto Highlight.
-- Desktop builds are not notarized or code-signed. macOS ships for Apple Silicon only, Windows for x64 only.
+- Scanned PDFs without a text layer get no selection actions, search, translation or Auto Highlight.
+- Paragraphs come from a layout heuristic, so tables and two-column edge cases can split oddly.
+- Library-wide questions use keyword retrieval, not embeddings; paraphrased questions may miss passages.
+- Desktop builds are not notarized or code-signed, so the app cannot update itself; it points you to the new release. macOS ships for Apple Silicon only, Windows and Linux for x64 only.
 - The interface is in English only.
 
 ## Roadmap
 
+- [x] Whole-paper translation, bilingual view, glossary (0.2.0)
+- [x] Linux build (0.2.0)
+- [x] BibTeX export and import (0.2.0)
 - [ ] OCR for scanned PDFs
 - [ ] Signed and notarized desktop builds, with auto-update
-- [ ] Intel Mac and Linux builds
-- [ ] Export and import of the library
+- [ ] Intel Mac build
 - [ ] Sync across devices
 
 ## Acknowledgements

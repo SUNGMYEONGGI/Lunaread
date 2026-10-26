@@ -10,6 +10,7 @@ export const REPO_URL = 'https://github.com/SUNGMYEONGGI/Lunaread';
 export const DOWNLOADS = {
   mac: `${REPO_URL}/releases/latest/download/Lunaread-arm64.dmg`,
   win: `${REPO_URL}/releases/latest/download/Lunaread-Setup-x64.exe`,
+  linux: `${REPO_URL}/releases/latest/download/Lunaread-x86_64.AppImage`,
   all: `${REPO_URL}/releases/latest`,
 };
 

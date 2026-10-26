@@ -241,7 +241,7 @@ export function TranslatePanel({ page, paras, busy, error, all, translated, page
       {paras?.map((p, i) => (
         <div key={i} className="group grid cursor-pointer gap-1 rounded-xl p-2 text-[14px] leading-relaxed hover:bg-surface-2" onClick={() => onJump(p)}>
           {both && p.tr !== p.src && <p className="text-[12.5px] leading-snug text-muted">{p.src}</p>}
-          <p>{p.tr}</p>
+          <p className={p.tr === p.src ? 'text-[12.5px] text-muted' : ''}>{p.tr}</p>
           <div className="hidden gap-0.5 text-muted group-hover:flex group-focus-within:flex" onClick={e => e.stopPropagation()}>
             <Act icon="refresh" label="Retranslate" onClick={() => onRetranslate(i)} /><Copy text={p.tr} />
           </div>

@@ -49,37 +49,37 @@ export function PaperPage({ selection = true }: { selection?: boolean }) {
   );
 }
 
+// The reader as it looks in the app: the chat thread beside the PDF.
 export function ProductMock() {
   const { shown, done } = useTyping(EXPLAIN);
+  const Avatar = () => <span className="mt-0.5 size-5 shrink-0 rounded-full" style={{ background: 'radial-gradient(circle at 32% 30%, #fff 0 14%, var(--accent) 58%, color-mix(in srgb, var(--accent) 35%, #000) 100%)' }} />;
   return (
     <div className="overflow-hidden rounded-[14px] border border-line bg-surface text-left">
       <div className="flex h-11 items-center gap-2 border-b border-line px-4">
         <span className="flex gap-1.5">{['#ff5f57', '#febc2e', '#28c840'].map(c => <i key={c} className="size-3 rounded-full" style={{ background: c }} />)}</span>
-        <div className="mx-auto hidden items-center gap-1 text-xs text-muted sm:flex">
-          <span className="rounded-md border border-line px-2 py-1">Automatic Zoom</span><span className="rounded-md border border-line px-2 py-1">3 / 15</span>
+        <span className="ml-3 truncate text-xs font-semibold">Attention Is All You Need</span>
+        <div className="ml-auto hidden items-center gap-1 text-xs text-muted sm:flex">
+          <span className="rounded-md border border-line px-2 py-1">3 / 15</span>
           <span className="inline-flex items-center gap-1 rounded-md bg-accent-soft px-2 py-1 text-accent"><Icon name="highlighter" size={12} />Auto Highlight</span>
           <span className="inline-flex items-center gap-1 px-2 py-1"><Icon name="image" size={12} />Image Explanation</span>
-          <span className="inline-flex items-center gap-1 px-2 py-1"><Icon name="languages" size={12} />Translate</span>
         </div>
       </div>
-      <div className="grid md:grid-cols-[1fr_340px]">
-        <div className="bg-surface-2 p-6 md:p-10"><PaperPage /></div>
-        <div className="hidden flex-col gap-3 border-l border-line p-4 md:flex">
-          <b className="text-[13px]">Keyword Dictionary</b>
-          <div className="flex flex-wrap gap-1.5">{['Transformer', 'Self-Attention', 'Multi-Head', 'Positional Encoding', 'Softmax'].map(k => <span key={k} className="rounded-full bg-ai px-2.5 py-1 text-[11.5px] font-semibold text-accent">{k}</span>)}</div>
-          <div className="ai-bubble">
-            <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold text-accent"><Icon name="sparkles" size={12} />Explanation · p.3</div>
-            <p className={`text-[12.5px] ${done ? '' : 'typing'}`}>{shown}</p>
-          </div>
-          <div className="mt-auto rounded-xl border border-line p-2.5">
-            <p className="text-xs text-muted">Ask me anything.</p>
-            <div className="mt-2 flex items-center gap-1.5">
-              <span className="chip h-6 text-[11px]"><Icon name="link" size={11} />Add Reference</span>
-              <span className="chip h-6 text-[11px]">Opus 5.5 · my subscription</span>
-              <span className="ml-auto grid size-6 place-items-center rounded-full bg-accent text-white"><Icon name="send" size={12} /></span>
+      <div className="grid md:grid-cols-[360px_1fr]">
+        <div className="hidden flex-col gap-3.5 border-r border-line p-4 text-[12.5px] leading-relaxed md:flex">
+          <div className="ml-auto flex w-56 items-center gap-2 rounded-xl border border-line p-2"><span className="grid h-8 w-6 place-items-center rounded bg-red-500 text-[7px] font-bold text-white">PDF</span><span><b className="block text-[11.5px]">Attention Is All You Need</b><span className="text-[10.5px] text-muted">PDF · 15 pages</span></span></div>
+          <div className="flex gap-2"><Avatar /><div><div className="mb-1 flex flex-wrap gap-1">{['Transformer', 'Self-Attention', 'Multi-Head'].map(k => <span key={k} className="rounded-full bg-ai px-2 py-0.5 text-[10.5px] font-semibold text-accent">{k}</span>)}</div>A new architecture built only on attention, with no recurrence.</div></div>
+          <div className="ml-auto max-w-[85%] rounded-2xl bg-surface-2 px-3 py-2"><div className="mb-0.5 flex items-center gap-1 text-[10.5px] font-semibold text-muted"><Icon name="sparkles" size={11} />Explain · p.3</div><i className="text-fg/80">“We scale the dot products by 1/√dₖ…”</i></div>
+          <div className="flex gap-2"><Avatar /><p className={done ? '' : 'typing'}>{shown}</p></div>
+          <div className="mt-auto rounded-2xl border border-line p-2">
+            <p className="px-1 text-[11.5px] text-muted">Ask anything about this paper</p>
+            <div className="mt-1.5 flex items-center gap-1.5">
+              <span className="chip h-6 text-[10.5px]"><Icon name="plus" size={11} />Context</span>
+              <span className="ml-auto text-[10.5px] text-muted">Opus 5.5 · my subscription</span>
+              <span className="grid size-6 place-items-center rounded-full bg-fg text-bg"><Icon name="arrowRight" size={12} className="-rotate-90" /></span>
             </div>
           </div>
         </div>
+        <div className="bg-surface-2 p-6 md:p-10"><PaperPage /></div>
       </div>
     </div>
   );

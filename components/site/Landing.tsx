@@ -52,7 +52,7 @@ function Hero() {
           <Link href="/library/" className="btn btn-primary h-12 px-7 text-[15px]">Open the reader<Icon name="arrowRight" size={16} /></Link>
           <a href={DOWNLOADS.mac} className="btn btn-outline h-12 px-7 text-[15px]"><Brand name="apple" size={16} />Download for Mac</a>
         </div>
-        <p className="mt-5 text-[13px] text-muted">Free and open source · <a href={DOWNLOADS.win} className="underline-offset-2 hover:text-fg hover:underline">Windows</a> · <a href={REPO_URL} target="_blank" rel="noreferrer" className="underline-offset-2 hover:text-fg hover:underline">Source on GitHub</a> · Your papers stay on your device</p>
+        <p className="mt-5 text-[13px] text-muted">Free and open source · <a href={DOWNLOADS.win} className="underline-offset-2 hover:text-fg hover:underline">Windows</a> · <a href={DOWNLOADS.linux} className="underline-offset-2 hover:text-fg hover:underline">Linux</a> · <a href={REPO_URL} target="_blank" rel="noreferrer" className="underline-offset-2 hover:text-fg hover:underline">Source on GitHub</a> · Your papers stay on your device</p>
       </BlurFade>
       <BlurFade delay={0.32} className="relative mx-auto mt-16 max-w-5xl">
         <div className="relative rounded-[18px] border border-line bg-surface-2/60 p-2 shadow-soft">
@@ -118,7 +118,7 @@ function Bento() {
         <div className={`${cell} md:col-span-2`}>
           <Icon name="library" className="text-accent" />
           <h3 className="mt-4 text-lg font-bold">Library & folders</h3>
-          <p className="mt-1 max-w-md text-sm text-muted">Drop PDFs or paste arXiv links. Lunaread reads the title, renders a thumbnail and remembers where you stopped.</p>
+          <p className="mt-1 max-w-md text-sm text-muted">Drop PDFs, paste arXiv links or import a BibTeX file. Ask questions across a folder or your whole library.</p>
           <div className="mt-6 flex gap-3">{[0, 1, 2, 3].map(i => <div key={i} className="h-28 w-24 shrink-0 rounded-lg border border-line bg-white p-2.5 shadow-sm" style={{ transform: `rotate(${(i - 1.5) * 3}deg)` }}><div className="mb-2 h-1.5 w-3/4 rounded bg-black/70" />{[1, 2, 3, 4, 5].map(j => <div key={j} className="mb-1.5 h-1 rounded bg-black/10" />)}</div>)}</div>
         </div>
         <div className={cell}>
@@ -130,7 +130,7 @@ function Bento() {
         <div className={cell}>
           <Icon name="pen" className="text-accent" />
           <h3 className="mt-4 text-lg font-bold">Markup & notes</h3>
-          <p className="mt-1 text-sm text-muted">Five highlight colors, notes on every highlight, Markdown export.</p>
+          <p className="mt-1 text-sm text-muted">Five highlight colors, notes on every highlight, Markdown and BibTeX export.</p>
           <div className="mt-5 flex gap-2">{['yellow', 'green', 'blue', 'pink', 'purple'].map(c => <span key={c} className="size-7 rounded-full ring-2 ring-surface" style={{ background: `var(--hl-${c})` }} />)}</div>
         </div>
         <div className={`${cell} md:col-span-2`}>
@@ -142,7 +142,7 @@ function Bento() {
         <div className={cell}>
           <Icon name="monitor" className="text-accent" />
           <h3 className="mt-4 text-lg font-bold">Web and desktop</h3>
-          <p className="mt-1 text-sm text-muted">The same app in your browser or as a native macOS / Windows window.</p>
+          <p className="mt-1 text-sm text-muted">The same app in your browser, on your phone, or as a macOS, Windows or Linux app.</p>
         </div>
         <div className={`${cell} md:col-span-2`}>
           <Icon name="shield" className="text-accent" />
@@ -199,11 +199,12 @@ function Download() {
   const apps: [string, string, string, string][] = [
     ['apple', 'macOS', 'Apple Silicon · .dmg', DOWNLOADS.mac],
     ['windows', 'Windows', 'x64 · installer', DOWNLOADS.win],
+    ['linux', 'Linux', 'x64 · AppImage', DOWNLOADS.linux],
   ];
   return (
     <section id="download" className="scroll-mt-16 px-6 py-20 md:px-10">
       <Heading kicker="Desktop app" title="Take Lunaread to your desktop" sub="The desktop app runs the AI server inside the app, so your Claude or ChatGPT login works with nothing else to set up." />
-      <div className="mx-auto mt-12 grid max-w-3xl gap-4 sm:grid-cols-2">
+      <div className="mx-auto mt-12 grid max-w-5xl gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {apps.map(([icon, name, meta, href]) => (
           <a key={name} href={href} className="card group relative flex items-center gap-4 overflow-hidden p-6 transition hover:-translate-y-0.5 hover:shadow-soft">
             <span className="grid size-12 place-items-center rounded-2xl bg-surface-2 text-fg"><Brand name={icon} size={24} /></span>
@@ -213,7 +214,7 @@ function Download() {
         ))}
       </div>
       <p className="mt-6 text-center text-[13px] text-muted">
-        Unsigned builds. On macOS, right-click the app and choose <b>Open</b> on first launch. <a href={DOWNLOADS.all} target="_blank" rel="noreferrer" className="text-accent hover:underline">All releases</a>
+        Unsigned builds. On macOS, right-click the app and choose <b>Open</b> on first launch. On Linux, make the AppImage executable. <a href={DOWNLOADS.all} target="_blank" rel="noreferrer" className="text-accent hover:underline">All releases</a>
       </p>
     </section>
   );
