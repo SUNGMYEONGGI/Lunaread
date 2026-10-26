@@ -8,6 +8,7 @@ import Icon from '../icons';
 import { GetStarted, ModelSelect, ThemePicker, loadModels } from './Pickers';
 import { openThemePicker, toast } from './events';
 import Palette from './Palette';
+import { SetupDialog } from './Rail';
 
 function Settings({ onClose }: { onClose: () => void }) {
   const [s, setS] = useState<S>(getSettings);
@@ -58,13 +59,13 @@ function Settings({ onClose }: { onClose: () => void }) {
 }
 
 export default function AppShell() {
-  const [open, setOpen] = useState<'settings' | 'theme' | 'start' | 'palette' | null>(null);
+  const [open, setOpen] = useState<'settings' | 'theme' | 'start' | 'palette' | 'setup' | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   useEffect(() => {
     saveSettings(getSettings()); // apply the saved theme
     let t: ReturnType<typeof setTimeout>;
     const onToast = (e: Event) => { setMsg((e as CustomEvent).detail); clearTimeout(t); t = setTimeout(() => setMsg(null), 2600); };
-    const on: [string, () => void][] = [['open-settings', () => setOpen('settings')], ['theme-picker', () => setOpen('theme')], ['get-started', () => setOpen('start')]];
+    const on: [string, () => void][] = [['open-settings', () => setOpen('settings')], ['theme-picker', () => setOpen('theme')], ['get-started', () => setOpen('start')], ['open-setup', () => setOpen('setup')]];
     const onKey = (e: KeyboardEvent) => { if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setOpen(o => o === 'palette' ? null : 'palette'); } };
     addEventListener('keydown', onKey);
     addEventListener('toast', onToast);
@@ -78,6 +79,7 @@ export default function AppShell() {
       {open === 'theme' && <ThemePicker onClose={close} />}
       {open === 'start' && <GetStarted onClose={close} />}
       {open === 'palette' && <Palette onClose={close} />}
+      {open === 'setup' && <SetupDialog onClose={close} />}
       {msg && <div role="status" className="fixed bottom-6 left-1/2 z-[200] -translate-x-1/2 rounded-full bg-fg px-5 py-2.5 text-sm font-medium text-bg shadow-soft" style={{ animation: 'fade-up .15s var(--ease)' }}>{msg}</div>}
     </>
   );

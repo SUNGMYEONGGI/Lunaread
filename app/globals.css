@@ -87,7 +87,7 @@ button:disabled { cursor: default; }
 @keyframes fade-up { from { opacity: 0; transform: translateY(6px); } }
 
 /* ---------- dialogs & focus ---------- */
-dialog.dialog { margin: auto; padding: 16px; width: 100%; max-width: 100vw; max-height: 100vh; background: transparent; overflow: visible; color: inherit; }
+dialog.dialog { margin: auto; padding: 16px; border: 0; width: 100%; max-width: 100vw; max-height: 100vh; background: transparent; overflow: visible; color: inherit; }
 dialog.dialog > * { margin: 0 auto; }
 dialog.dialog::backdrop { background: rgb(0 0 0 / .4); backdrop-filter: blur(2px); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

@@ -56,6 +56,16 @@ export default function Viewer() {
   const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [errs, setErrs] = useState<Record<string, string | undefined>>({});
   const [draft, setDraft] = useState('');
+  const [narrow, setNarrow] = useState(false);
+  const narrowRef = useRef(false); narrowRef.current = narrow;
+  const showChat = () => { setChat(true); if (narrowRef.current) setPdfOpen(false); };
+  useEffect(() => {
+    const mq = matchMedia('(max-width: 767px)');
+    const on = () => { setNarrow(mq.matches); if (mq.matches) setPdfOpen(false); };
+    on();
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
   const stage = useRef<HTMLDivElement>(null);
   const docRef = useRef<Doc | null>(null);
   const pageRef = useRef(1);
@@ -112,7 +122,7 @@ export default function Viewer() {
     const st = stage.current;
     const el = st?.querySelector<HTMLElement>(`.page[data-page="${n}"]`);
     // The PDF canvas may be closed: open it, then retry once it has laid out.
-    if (!st || !el) { setPdfOpen(true); if (tries < 5) setTimeout(() => jump(n, rects, tries + 1), 120); return; }
+    if (!st || !el) { setPdfOpen(true); if (narrowRef.current) setChat(false); if (tries < 5) setTimeout(() => jump(n, rects, tries + 1), 120); return; }
     const y = rects?.[0] ? rects[0].y * el.offsetHeight - st.clientHeight / 3 : -12;
     st.scrollTo({ top: el.offsetTop + y, behavior: rects ? 'smooth' : 'auto' });
     if (rects) setFlash({ page: n, rects, key: Date.now() });
@@ -135,7 +145,7 @@ export default function Viewer() {
     const card: Card = { id: cid, type, src, image, page: pg, at: Date.now(), pending: true };
     const upd = (c: Partial<Card>) => patch(d => ({ cards: d.cards.map(x => x.id === cid ? { ...x, ...c } : x) }));
     patch(d => ({ cards: [...(d.cards || []), card] }));
-    setChat(true);
+    showChat();
     try {
       const body = { task, text, extra, ...(image && { image: image.split(',')[1] }) };
       await streamAI(task === 'translate' || task === 'infographic' ? null : docRef.current, body, t => upd({ body: t }));
@@ -290,9 +300,9 @@ export default function Viewer() {
   };
 
   // ---------- selection, markup, citations ----------
-  const onMouseUp = (e: MouseEvent) => {
-    if ((e.target as Element).closest('.popover')) return;
-    setTimeout(() => {
+  const onMouseUp = (e: MouseEvent) => { if (!(e.target as Element).closest('.popover')) setTimeout(captureSelection); };
+  const captureSelection = () => {
+    {
       const s = getSelection();
       const text = s?.toString().trim();
       if (!s || !text || !s.rangeCount) return;
@@ -305,8 +315,17 @@ export default function Viewer() {
         .map(r => ({ x: (r.left - pr.left) / pr.width, y: (r.top - pr.top) / pr.height, w: r.width / pr.width, h: r.height / pr.height }));
       const b = range.getBoundingClientRect();
       setSel({ text, page: +pg.dataset.page!, rects, x: b.left + b.width / 2, y: b.top < 120 ? b.bottom + 10 : b.top - 50 });
-    });
+    }
   };
+  // Touch screens have no mouseup after a long-press selection: follow selection changes instead.
+  const captureRef = useRef(captureSelection); captureRef.current = captureSelection;
+  useEffect(() => {
+    if (!matchMedia('(pointer: coarse)').matches) return;
+    let t: ReturnType<typeof setTimeout>;
+    const on = () => { clearTimeout(t); t = setTimeout(() => captureRef.current(), 400); };
+    document.addEventListener('selectionchange', on);
+    return () => { clearTimeout(t); document.removeEventListener('selectionchange', on); };
+  }, []);
 
   const addMark = (color: string) => {
     const m: Mark = { id: uid(), page: sel!.page, rects: sel!.rects, text: sel!.text, color, note: '', at: Date.now() };
@@ -446,18 +465,19 @@ export default function Viewer() {
   const near = (n: number) => Math.abs(n - page) <= 2;
   const tabs: [Tab, string, string][] = [['translate', 'languages', 'Translate Page'], ['notes', 'pen', 'Markup & Notes'], ['discussion', 'chat', 'Discussion']];
   // Chat and PDF can each be hidden, but never both.
-  const toggleChat = () => { if (chat && !pdfOpen) setPdfOpen(true); setChat(!chat); };
-  const togglePdf = () => { if (pdfOpen && !chat) setChat(true); setPdfOpen(!pdfOpen); };
+  // On phones chat and PDF are tabs; on wider screens they can sit side by side.
+  const toggleChat = () => { if (narrow) { showChat(); setPdfOpen(false); return; } if (chat && !pdfOpen) setPdfOpen(true); setChat(!chat); };
+  const togglePdf = () => { if (narrow) { setPdfOpen(true); setChat(false); return; } if (pdfOpen && !chat) showChat(); setPdfOpen(!pdfOpen); };
   const rail = (on: boolean) => `icon-btn size-10 border ${on ? 'border-line bg-bg text-fg shadow-sm' : 'border-transparent'}`;
   const tool = (on: boolean) => `inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-[13px] font-medium transition ${on ? 'bg-accent-soft text-accent' : 'hover:bg-surface-2'}`;
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-dvh overflow-hidden">
       <Sidebar />
-      <div className="flex min-w-0 flex-1 bg-surface">
+      <div className="flex min-w-0 flex-1 bg-surface max-md:pb-14">
         {chat && (
           <section className={`flex min-w-0 flex-col ${pdfOpen ? 'w-[clamp(360px,36vw,560px)] shrink-0 border-r border-line' : 'flex-1'}`}>
-            <header className="flex h-14 shrink-0 items-center gap-2 px-4">
+            <header className="flex h-14 shrink-0 items-center gap-2 px-4 max-md:pl-14">
               <h1 className="min-w-0 flex-1 truncate text-[15px] font-semibold" title={doc.title}>{doc.title}</h1>
             </header>
             <ChatThread doc={doc} summary={doc.summary} summarizing={busy.summary} onSummarize={summarize} onAsk={ask} chatBusy={busy.chat} onStop={() => chatAbort.current?.abort()}
@@ -468,7 +488,7 @@ export default function Viewer() {
         )}
         {pdfOpen && (
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex h-14 shrink-0 items-center gap-1 overflow-x-auto border-b border-line bg-surface px-3 *:shrink-0 [&>:first-child]:ml-auto [&>:last-child]:mr-auto">
+        <div className="flex h-14 shrink-0 items-center gap-1 overflow-x-auto border-b border-line bg-surface px-3 max-md:pl-12 *:shrink-0 [&>:first-child]:ml-auto [&>:last-child]:mr-auto">
           <button className={`icon-btn ${showOutline ? 'on' : ''}`} title="Outline" onClick={() => setShowOutline(v => !v)}><Icon name="sidebar" /></button>
           <button className="icon-btn max-md:hidden" title="Document info" onClick={() => setMenu(menu === 'info' ? null : 'info')}><Icon name="info" /></button>
           <button className={`icon-btn ${search ? 'on' : ''}`} title="Search (⌘F)" onClick={() => setSearch(s => s ? null : { q: '' })}><Icon name="search" /></button>
@@ -523,7 +543,7 @@ export default function Viewer() {
       </div>
         )}
           {tab && (
-            <section className="flex w-[380px] shrink-0 flex-col border-l border-line bg-surface max-lg:fixed max-lg:bottom-0 max-lg:right-[52px] max-lg:top-0 max-lg:z-30 max-lg:w-[min(380px,calc(100vw-52px))] max-lg:shadow-soft">
+            <section className="flex w-[380px] shrink-0 flex-col border-l border-line bg-surface max-lg:fixed max-lg:bottom-0 max-lg:right-[52px] max-lg:top-0 max-lg:z-30 max-lg:w-[min(380px,calc(100vw-52px))] max-lg:shadow-soft max-md:inset-x-0 max-md:bottom-14 max-md:w-full">
               <div className="flex h-14 shrink-0 items-center border-b border-line px-4 font-semibold">{tabs.find(t => t[0] === tab)![2]}
                 <button className="icon-btn ml-auto" onClick={() => setTab(null)} title="Close panel"><Icon name="x" size={16} /></button>
               </div>
@@ -538,7 +558,7 @@ export default function Viewer() {
               {tab === 'discussion' && <DiscussionPanel text={doc.discussion} busy={busy.disc} error={errs.disc} onRun={discuss} />}
             </section>
           )}
-          <nav className="flex w-[52px] shrink-0 flex-col items-center gap-1.5 border-l border-line bg-surface py-2.5">
+          <nav className="flex w-[52px] shrink-0 flex-col items-center gap-1.5 border-l border-line bg-surface py-2.5 max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-40 max-md:h-14 max-md:w-full max-md:flex-row max-md:justify-around max-md:border-l-0 max-md:border-t max-md:py-0 max-md:[&>span]:hidden">
             <button title="AI Colleague" aria-pressed={chat} onClick={toggleChat} className={rail(chat)}><Icon name="bot" /></button>
             <button title="PDF" aria-pressed={pdfOpen} onClick={togglePdf} className={rail(pdfOpen)}><Icon name="file" /></button>
             <span className="my-1 h-px w-6 bg-line" />
@@ -551,10 +571,10 @@ export default function Viewer() {
       </div>
 
       {sel && (
-        <div className="popover flex items-center gap-0.5 p-1" style={{ left: Math.min(Math.max(8, sel.x - 230), innerWidth - 470), top: sel.y }} onMouseDown={e => e.preventDefault()}>
+        <div className="popover flex max-w-[calc(100vw-16px)] items-center gap-0.5 overflow-x-auto p-1" style={{ left: Math.max(8, Math.min(sel.x - 230, innerWidth - 470)), top: sel.y }} onMouseDown={e => e.preventDefault()}>
           <button className={tool(false)} onClick={() => { explain(sel.text, sel.page); setSel(null); }}><Icon name="sparkles" size={15} />Explain</button>
           <button className={tool(false)} onClick={() => { translate(sel.text, sel.page); setSel(null); }}><Icon name="languages" size={15} />Translate</button>
-          <button className={tool(false)} onClick={() => { setChat(true); setDraft(`"${sel.text.slice(0, 600)}"\n\n`); setSel(null); }}><Icon name="chat" size={15} />Ask</button>
+          <button className={tool(false)} onClick={() => { showChat(); setDraft(`"${sel.text.slice(0, 600)}"\n\n`); setSel(null); }}><Icon name="chat" size={15} />Ask</button>
           <span className="mx-1 h-5 w-px bg-line" />
           {SWATCHES.map(c => <button key={c} className="icon-btn size-7" title={`Highlight ${c}`} onClick={() => addMark(c)}><span className="size-[18px] rounded-full ring-2 ring-surface" style={{ background: `var(--hl-${c})`, boxShadow: '0 0 0 3px var(--border)' }} /></button>)}
           <button className="icon-btn" title="Highlight + note" onClick={() => { addMark('yellow'); setTab('notes'); }}><Icon name="note" size={15} /></button>

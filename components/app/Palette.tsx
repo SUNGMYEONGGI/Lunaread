@@ -8,7 +8,7 @@ import { listDocs } from '@/lib/db';
 import { getSettings, saveSettings } from '@/lib/api';
 import type { Doc } from '@/lib/types';
 import { fuzzy } from '@/lib/text';
-import { openSettings, openThemePicker } from './events';
+import { openSettings, openSetup, openThemePicker } from './events';
 
 export const readerAction = (id: string) => window.dispatchEvent(new CustomEvent('reader-action', { detail: id }));
 type Item = { icon: string; label: string; hint?: string; run: () => void };
@@ -30,6 +30,7 @@ export default function Palette({ onClose }: { onClose: () => void }) {
     { icon: 'library', label: 'Library', run: go('/library/?all') },
     { icon: 'compass', label: 'Scholar Deep Search', run: go('/library/?scholar') },
     { icon: 'settings', label: 'Settings', run: openSettings },
+    { icon: 'zap', label: 'Connect AI server', run: openSetup },
     { icon: 'palette', label: 'Color theme', run: openThemePicker },
     { icon: 'moon', label: 'Toggle dark mode', run: () => { const s = getSettings(); saveSettings({ ...s, theme: s.theme === 'dark' ? 'light' : 'dark' }); } },
     ...docs.map(d => ({ icon: 'file', label: d.title, hint: 'Paper', run: go(`/read/?id=${d.id}`) })),

@@ -177,7 +177,7 @@ export default function Library() {
   return (
     <div className="flex h-screen overflow-hidden">
       <Sidebar />
-      <main className="flex-1 overflow-auto bg-surface px-5 py-7 md:px-10">
+      <main className="flex-1 overflow-auto bg-surface px-5 py-7 max-md:pt-14 md:px-10">
         <div className="mx-auto max-w-5xl"><ServerBanner /></div>
         <input ref={fileRef} type="file" accept="application/pdf,.pdf" multiple hidden onChange={e => { addFiles(e.target.files); e.target.value = ''; }} />
         <input ref={bibRef} type="file" accept=".bib,application/x-bibtex,text/plain" hidden onChange={e => { importBib(e.target.files?.[0]); e.target.value = ''; }} />
