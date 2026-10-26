@@ -88,7 +88,6 @@ button:disabled { cursor: default; }
 @keyframes fade-up { from { opacity: 0; transform: translateY(6px); } }
 
 /* ---------- magic effects ---------- */
-.hatch { background-image: repeating-linear-gradient(-45deg, var(--border) 0 1px, transparent 1px 9px); }
 .dots { background-image: radial-gradient(color-mix(in srgb, var(--text) 18%, transparent) 1px, transparent 1px); background-size: 18px 18px; }
 .grid-lines { background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px); background-size: 48px 48px; }
 .text-gradient { background: linear-gradient(180deg, var(--text) 30%, color-mix(in srgb, var(--text) 45%, transparent)); -webkit-background-clip: text; background-clip: text; color: transparent; }

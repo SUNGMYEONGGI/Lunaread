@@ -31,7 +31,7 @@ const FAQ: [string, string][] = [
 function Hero() {
   return (
     <section className="relative overflow-hidden px-6 pb-16 pt-20 text-center md:pt-28">
-      <div className="pointer-events-none absolute inset-x-0 -top-40 mx-auto h-[420px] max-w-3xl rounded-full bg-accent/15 blur-3xl" />
+      <div className="pointer-events-none absolute inset-x-0 -top-48 h-[640px]" style={{ background: 'radial-gradient(closest-side, color-mix(in srgb, var(--accent) 24%, transparent), transparent)' }} />
       <BlurFade>
         <a href={REPO_URL} target="_blank" rel="noreferrer" className="relative mx-auto inline-flex items-center gap-2 rounded-full border border-line bg-surface px-4 py-1.5 text-[13px] font-medium shadow-sm transition hover:border-accent">
           <i className="size-2 rounded-full bg-accent" />Runs on your Claude & ChatGPT subscriptions<Icon name="arrowRight" size={13} className="text-muted" />
@@ -66,7 +66,7 @@ function Hero() {
 
 function WorksWith() {
   return (
-    <section className="border-y border-line">
+    <section className="mx-6 overflow-hidden rounded-2xl border border-line md:mx-10">
       <p className="py-5 text-center font-mono text-xs uppercase tracking-[.18em] text-muted">Works with the tools you already use</p>
       <div className="grid grid-cols-2 border-t border-line sm:grid-cols-3 md:grid-cols-6">
         {WORKS_WITH.map(([icon, name], i) => (
@@ -112,7 +112,7 @@ function FeatureSwitcher() {
 function Bento() {
   const cell = 'card relative overflow-hidden p-6 transition hover:shadow-soft';
   return (
-    <section className="border-t border-line px-6 py-24 md:px-10">
+    <section className="px-6 py-24 md:px-10">
       <Heading kicker="Built for deep reading" title="A reader that keeps up with your research" />
       <div className="grid gap-4 md:grid-cols-3">
         <div className={`${cell} md:col-span-2`}>
@@ -162,7 +162,7 @@ function Steps() {
     ['sparkles', 'Read with AI', 'Select, drag or ask. Explanations and translations appear right next to the text.'],
   ];
   return (
-    <section className="border-t border-line px-6 py-24 md:px-10">
+    <section className="px-6 py-24 md:px-10">
       <Heading kicker="How it works" title="Up and running in a minute" />
       <div className="relative grid gap-6 md:grid-cols-3">
         <div className="absolute left-[16%] right-[16%] top-7 hidden h-px bg-gradient-to-r from-transparent via-line to-transparent md:block" />
@@ -181,7 +181,7 @@ function Steps() {
 
 function Faq() {
   return (
-    <section className="border-t border-line px-6 py-24 md:px-10" id="faq">
+    <section className="px-6 py-24 md:px-10" id="faq">
       <Heading kicker="FAQ" title="Questions, answered" />
       <div className="mx-auto max-w-3xl divide-y divide-line border-y border-line">
         {FAQ.map(([q, a]) => (
@@ -201,7 +201,7 @@ function Download() {
     ['windows', 'Windows', 'x64 · installer', DOWNLOADS.win],
   ];
   return (
-    <section id="download" className="scroll-mt-16 border-t border-line px-6 py-20 md:px-10">
+    <section id="download" className="scroll-mt-16 px-6 py-20 md:px-10">
       <Heading kicker="Desktop app" title="Take Lunaread to your desktop" sub="The desktop app runs the AI server inside the app, so your Claude or ChatGPT login works with nothing else to set up." />
       <div className="mx-auto mt-12 grid max-w-3xl gap-4 sm:grid-cols-2">
         {apps.map(([icon, name, meta, href]) => (
@@ -221,7 +221,7 @@ function Download() {
 
 function Cta() {
   return (
-    <section className="border-t border-line p-6 md:p-10">
+    <section className="p-6 md:p-10">
       <div className="relative overflow-hidden rounded-3xl bg-fg px-6 py-20 text-center text-bg">
         <div className="dots absolute inset-0 opacity-20" />
         <div className="absolute left-1/2 top-0 h-56 w-[60%] -translate-x-1/2 rounded-full bg-accent/50 blur-3xl" />

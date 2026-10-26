@@ -56,7 +56,7 @@ export default function Features() {
           ))}
         </div>
       </section>
-      <section className="border-t border-line px-6 py-20 text-center md:px-10">
+      <section className="px-6 py-20 text-center md:px-10">
         <h2 className="text-3xl font-bold tracking-tight md:text-4xl">Lunaread supports your research</h2>
         <Link href="/library/?upload" className="btn btn-primary mt-8 h-12 px-7"><Icon name="upload" size={16} />Upload paper</Link>
       </section>

@@ -1,5 +1,5 @@
 'use client';
-// Marketing chrome: hatched gutters around a bordered center column, as on the reference templates.
+// Marketing chrome: full-bleed background, content centered in a 1180px column (OpenBot / CharacterBot style).
 import Link from 'next/link';
 import { useEffect, useState, type ReactNode } from 'react';
 import Icon from '../icons';
@@ -16,12 +16,10 @@ export const Logo = () => (
 
 export function Page({ children }: { children: ReactNode }) {
   return (
-    <div className="hatch min-h-screen">
-      <div className="mx-auto min-h-screen max-w-[1180px] border-x border-line bg-bg">
-        <Nav />
-        <main>{children}</main>
-        <Footer />
-      </div>
+    <div className="min-h-screen bg-bg">
+      <Nav />
+      <main className="mx-auto max-w-[1180px]">{children}</main>
+      <Footer />
     </div>
   );
 }
@@ -38,7 +36,7 @@ function Nav() {
   }, []);
   return (
     <header className={`sticky top-0 z-40 border-b transition-colors ${scrolled ? 'border-line bg-bg/80 backdrop-blur-xl' : 'border-transparent'}`}>
-      <div className="flex h-16 items-center gap-8 px-6 md:px-10">
+      <div className="mx-auto flex h-16 max-w-[1180px] items-center gap-8 px-6 md:px-10">
         <Logo />
         <nav className="hidden gap-7 text-sm text-muted md:flex">
           {LINKS.map(([href, l]) => <Link key={href} href={href} className="transition hover:text-fg">{l}</Link>)}
@@ -62,7 +60,8 @@ function Nav() {
 
 function Footer() {
   return (
-    <footer className="border-t border-line px-6 py-12 text-sm text-muted md:px-10">
+    <footer className="border-t border-line text-sm text-muted">
+      <div className="mx-auto max-w-[1180px] px-6 py-12 md:px-10">
       <div className="flex flex-wrap justify-between gap-10">
         <div className="max-w-xs space-y-3">
           <Logo />
@@ -84,6 +83,7 @@ function Footer() {
         </div>
       </div>
       <p className="mt-10 text-xs">© {new Date().getFullYear()} {APP_NAME}. Palettes courtesy of Color Hunt. Not affiliated with Moonlight, Anthropic or OpenAI.</p>
+      </div>
     </footer>
   );
 }
