@@ -17,7 +17,8 @@
     "test": "node --test lib/*.test.ts",
     "desktop": "npm run build && electron .",
     "dist:mac": "npm run build && electron-builder --mac",
-    "dist:win": "npm run build && electron-builder --win"
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:linux": "npm run build && electron-builder --linux"
   },
   "build": {
     "appId": "io.lunaread.app",
@@ -60,7 +61,14 @@
     "nsis": {
       "oneClick": true
     },
-    "publish": null
+    "publish": null,
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "artifactName": "Lunaread-x86_64.AppImage",
+      "category": "Education"
+    }
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.3.310",

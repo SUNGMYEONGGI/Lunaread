@@ -1,9 +1,10 @@
 name: Release desktop app
 
+# Publishes a release when a version tag (v0.2.0) is pushed. The tag must match package.json.
+# A manual run only builds the installers (dry run).
 on:
   push:
-    branches: [main]
-    paths-ignore: ['**.md', 'docs/**']
+    tags: ['v*']
   workflow_dispatch:
 
 permissions:
@@ -24,6 +25,9 @@ jobs:
           - os: windows-latest
             script: dist:win
             files: dist/Lunaread-Setup-x64.exe
+          - os: ubuntu-latest
+            script: dist:linux
+            files: dist/Lunaread-x86_64.AppImage
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -32,9 +36,6 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - name: Set version
-        shell: bash
-        run: npm version --no-git-tag-version "$(node -p "require('./package.json').version.split('.').slice(0,2).join('.')").${{ github.run_number }}"
       - run: npm run typecheck
       - run: npm test
       - run: npm run ${{ matrix.script }}
@@ -47,6 +48,7 @@ jobs:
 
   release:
     needs: build
+    if: github.ref_type == 'tag'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -58,5 +60,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          VERSION="$(node -p "require('./package.json').version.split('.').slice(0,2).join('.')").${{ github.run_number }}"
+          VERSION="$(node -p "require('./package.json').version")"
+          if [ "$GITHUB_REF_TYPE" = tag ] && [ "$GITHUB_REF_NAME" != "v$VERSION" ]; then echo "Tag $GITHUB_REF_NAME does not match package.json $VERSION"; exit 1; fi
           gh release create "v$VERSION" artifacts/* --title "Lunaread v$VERSION" --generate-notes --latest
